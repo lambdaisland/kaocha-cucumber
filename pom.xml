@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>lambdaisland</groupId>
+  <artifactId>kaocha-cucumber</artifactId>
+  <version>0.0-13</version>
+  <name>kaocha</name>
+  <description>Cucumber integration for Kaocha</description>
+  <url>https://github.com/lambdaisland/kaocha-cucumber</url>
+  <inceptionYear>2018</inceptionYear>
+  <organization>
+    <name>Lambda Island</name>
+    <url>https://lambdaisland.com</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Eclipse Public License 1.0</name>
+      <url>https://www.eclipse.org/legal/epl-v10.html</url>
+    </license>
+  </licenses>
+  <scm>
+    <url>https://github.com/lambdaisland/kaocha-cucumber</url>
+    <connection>scm:git:git://github.com/lambdaisland/kaocha-cucumber.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/lambdaisland/kaocha-cucumber.git</developerConnection>
+    <tag>09d2c11d2d56f9cd7edebf826d1c2fd80b7a81a2</tag>
+  </scm>
+  <dependencies>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.10.0-beta4</version>
+    </dependency>
+    <dependency>
+      <groupId>io.cucumber</groupId>
+      <artifactId>cucumber-java</artifactId>
+      <version>4.2.0</version>
+    </dependency>
+  </dependencies>
+  <build>
+    <sourceDirectory>src</sourceDirectory>
+    <resources>
+      <resource>
+        <directory>src</directory>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Git-Revision>09d2c11d2d56f9cd7edebf826d1c2fd80b7a81a2</Git-Revision>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <repositories>
+    <repository>
+      <id>clojars</id>
+      <url>https://repo.clojars.org/</url>
+    </repository>
+  </repositories>
+  <distributionManagement>
+    <repository>
+      <id>clojars</id>
+      <name>Clojars repository</name>
+      <url>https://clojars.org/repo</url>
+    </repository>
+  </distributionManagement>
+</project>

@@ -1,0 +1,128 @@
+{:type :cucumber/feature,
+ :uri "resources/lambdaisland/gherkin/test_feature.feature",
+ :document
+ {:type :gherkin/document,
+  :location {:line nil, :column nil},
+  :feature
+  {:type :gherkin/feature,
+   :location {:line 1, :column 1},
+   :tags [],
+   :language "en",
+   :keyword "Feature",
+   :name "Is it Friday yet?",
+   :description "  Everybody wants to know when it's Friday",
+   :children
+   [{:type :gherkin/background,
+     :location {:line 5, :column 3},
+     :keyword "Background",
+     :name "",
+     :description nil,
+     :steps
+     [{:type :gherkin/step,
+       :location {:line 6, :column 5},
+       :keyword "Given ",
+       :text "a gregorian calendar",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 7, :column 5},
+       :keyword "Given ",
+       :text "the following users exist:",
+       :argument
+       {:type :gherkin/data-table,
+        :rows
+        [["name" "email" "twitter"]
+         ["Aslak" "aslak@cucumber.io" "@aslak_hellesoy"]
+         ["Julien" "julien@cucumber.io" "@jbpros"]
+         ["Matt" "matt@cucumber.io" "@mattwynne"]]}}
+      {:type :gherkin/step,
+       :location {:line 12, :column 5},
+       :keyword "Given ",
+       :text "a file \"hello.txt\" with",
+       :argument
+       {:type :gherkin/doc-string,
+        :location {:line 13, :column 7},
+        :content
+        "Dear bozo,\n\nPlease click this link to reset your password",
+        :content-type "markdown"}}]}
+    {:type :gherkin/scenario,
+     :location {:line 20, :column 3},
+     :keyword "Scenario",
+     :name "Sunday isn't Friday",
+     :description nil,
+     :steps
+     [{:type :gherkin/step,
+       :location {:line 21, :column 5},
+       :keyword "Given ",
+       :text "today is Sunday",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 22, :column 5},
+       :keyword "When ",
+       :text "I ask whether it's Friday yet",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 23, :column 5},
+       :keyword "Then ",
+       :text "I should be told \"Nope\"",
+       :argument nil}],
+     :tags []}
+    {:type :gherkin/scenario,
+     :location {:line 25, :column 3},
+     :keyword "Scenario",
+     :name "Friday is Friday",
+     :description nil,
+     :steps
+     [{:type :gherkin/step,
+       :location {:line 26, :column 5},
+       :keyword "Given ",
+       :text "today is Friday",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 27, :column 5},
+       :keyword "When ",
+       :text "I ask whether it's Friday yet",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 28, :column 5},
+       :keyword "Then ",
+       :text "I should be told \"Indeed\"",
+       :argument nil}],
+     :tags []}
+    {:type :gherkin/scenario-outline,
+     :location {:line 31, :column 3},
+     :keyword "Scenario Outline",
+     :name "eating",
+     :description nil,
+     :steps
+     [{:type :gherkin/step,
+       :location {:line 32, :column 5},
+       :keyword "Given ",
+       :text "there are <start> cucumbers",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 33, :column 5},
+       :keyword "When ",
+       :text "I eat <eat> cucumbers",
+       :argument nil}
+      {:type :gherkin/step,
+       :location {:line 34, :column 5},
+       :keyword "Then ",
+       :text "I should have <left> cucumbers",
+       :argument nil}],
+     :tags
+     [{:type :gherkin/tag,
+       :location {:line 30, :column 3},
+       :name "@end2end"}],
+     :examples
+     [{:type :gherkin/examples,
+       :location {:line 36, :column 5},
+       :tags [],
+       :keyword "Examples",
+       :name "",
+       :description nil,
+       :table-header ["start" "eat" "left"],
+       :table-body [["12" "5" "7"] ["20" "5" "15"]]}]}]},
+  :comments
+  [{:type :gherkin/comment,
+    :location {:line 3, :column 1},
+    :text "  # Most people at least"}]}}

@@ -1,0 +1,11 @@
+{:paths ["src" "test" "resources"]
+ :deps  {org.clojure/clojure       {:mvn/version "1.10.0-beta4"}
+         io.cucumber/cucumber-java {:mvn/version "4.2.0"}}
+ :aliases
+ {:dev
+  {}
+
+  :test
+  {:extra-deps {lambdaisland/kaocha {
+                                     :local/root      "/home/arne/github/kaocha"
+                                     #_#_:mvn/version "0.0-239"}}}}}
