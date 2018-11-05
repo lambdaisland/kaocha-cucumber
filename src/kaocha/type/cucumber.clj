@@ -14,13 +14,14 @@
             [kaocha.result :as result]
             [kaocha.type :as type]
             [clojure.walk :as walk]
-            [kaocha.report :as report]))
+            [kaocha.report :as report]
+            [slingshot.slingshot :refer [try+ throw+]]))
 
 (defn scenario->testable [feature suite]
   (let [scenario (first (gherkin/scenarios feature))]
     {::testable/type :kaocha.type/cucumber-scenario
      ::testable/id (keyword (-> (:uri feature)
-                                (str/replace #"/" "-")
+                                (str/replace #"/" ".")
                                 (str/replace #" " "_")
                                 (str/replace #"\.feature$" ""))
                             (str "line-" (-> scenario :location :line)))
@@ -37,7 +38,7 @@
 (defn feature->testable [feature suite]
   {::testable/type :kaocha.type/cucumber-feature
    ::testable/id (-> (:uri feature)
-                     (str/replace #"/" "-")
+                     (str/replace #"/" ".")
                      (str/replace #" " "_")
                      (str/replace #"\.feature$" "")
                      keyword)
@@ -112,10 +113,18 @@
         state              (atom {:done done})]
     (type/with-report-counters
       (t/do-report {:type :cucumber/begin-scenario})
-      (jvm/execute! {:features [(gherkin/edn->gherkin feature)]
-                     :glue     (::glue-paths testable)
-                     :state    state
-                     :handler  handle-event})
+      (try+
+       (jvm/execute! {:features [(gherkin/edn->gherkin feature)]
+                      :glue     (::glue-paths testable)
+                      :state    state
+                      :handler  handle-event})
+       (catch :kaocha/fail-fast e)
+       (catch Throwable e
+         (t/do-report {:type :error
+                       :message "Uncaught exception, not in assertion."
+                       :expected nil
+                       :actual e
+                       :kaocha.result/exception e})))
       (when-let [snippets (::snippets @state)]
         (t/do-report {:type :cucumber/snippets-suggested
                       :snippets snippets}))
