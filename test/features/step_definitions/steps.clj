@@ -1,7 +1,6 @@
 (ns my-steps
-  (:require [lambdaisland.cucumber.dsl :refer :all]))
-
-(println "in step definitions")
+  (:require [lambdaisland.cucumber.dsl :refer :all]
+            [clojure.test :refer :all]))
 
 (defn day? [day asked]
   (if (= day asked)
@@ -12,7 +11,16 @@
   (assoc m :today today))
 
 (When "I ask whether it's (.*) yet" [m day]
-  (assoc m :day day))
+  (assoc m :asked day))
 
-(Then "I should be told {string}" [{:keys [today day]} string]
-  (assert (= (day? day asked) string)))
+(Then "I should be told {string}" [{:keys [today asked]} string]
+  (is (= (day? today asked) string)))
+
+(Given "there are {int} cucumbers" [state int1]
+  (pending!))
+
+(When "I eat {int} cucumbers" [state int1]
+  (pending!))
+
+(Then "I should have {int} cucumbers" [state int1]
+  (pending!))

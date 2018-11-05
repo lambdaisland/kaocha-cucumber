@@ -31,6 +31,7 @@
   {:type     :cucumber/feature
    :uri      (.getUri feat)
    :document (gherkin->edn (.getGherkinFeature feat))
+   :source   (slurp (.getUri feat))
    ;; source is private without a getter :(
    })
 
@@ -207,6 +208,19 @@
 (defmethod edn->gherkin :gherkin/tag [{:keys [location name]}]
   (Tag. (edn->gherkin location) name))
 
+(def scenario? (comp #{:gherkin/scenario :gherkin/scenario-outline} :type))
+
+(defn scenarios [feature]
+  (filter scenario? (get-in feature [:document :feature :children])))
+
+(defn dedupe-feature
+  "Split a feature up into a number of different featurs, each with a single scenario."
+  [feature]
+  (map #(update-in feature
+                   [:document :feature :children]
+                   (partial filter (fn [child]
+                                     (or (not (scenario? child)) (= child %)))))
+       (scenarios feature)))
 
 (comment
   (= (read-string (slurp (io/file "resources/lambdaisland/gherkin/test_feature.edn")))
@@ -218,6 +232,16 @@
               gherkin->edn)
         y (-> x edn->gherkin gherkin->edn)]
     (= x y))
+
+
+  (->> "resources/lambdaisland/gherkin/test_feature.feature"
+       parse
+       gherkin->edn
+       scenarios
+       last
+       :tags
+       )
+
 
 
   (-> (jvm/feature-loader)

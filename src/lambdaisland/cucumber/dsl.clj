@@ -28,7 +28,7 @@
        (getParameterCount [_]
          nil)
        (execute [_ args]
-         (swap! jvm/*state* fun args))
+         (swap! jvm/*state* #(apply fun % args)))
        (isDefinedAt [_ stack-trace-element]
          (and (= (.getLineNumber stack-trace-element)
                  (:line location))

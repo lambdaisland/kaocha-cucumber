@@ -1,6 +1,7 @@
 (ns lambdaisland.cucumber.jvm
   (:require [clojure.string :as str])
-  (:import cucumber.runner.EventBus
+  (:import cucumber.api.Result$Type
+           cucumber.runner.EventBus
            [cucumber.runtime Backend BackendSupplier CucumberException FeatureSupplier RuntimeOptions]
            cucumber.runtime.io.FileResourceLoader
            cucumber.runtime.model.FeatureLoader
@@ -21,7 +22,7 @@
       (str
        "({0} \"{1}\" [{3}]\n"
        "  ;; {4}\n"
-       "  (pending!))\n"))
+       "  (pending!))"))
     (arguments [_ argument-types]
       (->> (into {} argument-types)
            (map key)
@@ -145,17 +146,8 @@
       (withEventBus (:event-bus opts))
       (build)))
 
-(defn run! [opts]
-  (let [event-bus (event-adaptor (:state opts :handler opts))
-        feature-supplier (-> (feature-loader)
-                             (.load (:feature-paths opts))
-                             (feature-supplier))
-        runtime (runtime (assoc opts
-                                :feature-supplier feature-supplier
-                                :event-bus event-bus))]
-    (.run runtime)
-    ))
-
+(defn load-features [feature-paths]
+  (.load (feature-loader) feature-paths))
 
 (defn event->type [e]
   (->> e
@@ -164,20 +156,24 @@
        camel->kebap
        (keyword "cucumber")))
 
-(defmulti handle-event (fn [_ e] (event->type e)))
+(defn result->edn [r]
+  {:status (condp = (.getStatus r)
+             Result$Type/PASSED    :passed
+             Result$Type/SKIPPED   :skipped
+             Result$Type/PENDING   :pending
+             Result$Type/UNDEFINED :undefined
+             Result$Type/AMBIGUOUS :ambiguous
+             Result$Type/FAILED    :failed)
+   :duration (.getDuration r)
+   :error (.getError r)})
 
-(defmethod handle-event :default [m e] m)
-
-(defmethod handle-event :cucumber/test-run-started [m e] m)
-(defmethod handle-event :cucumber/test-source-read [m e] m)
-(defmethod handle-event :cucumber/test-case-started [m e] m)
-(defmethod handle-event :cucumber/test-step-started [m e] m)
-(defmethod handle-event :cucumber/test-step-finished [m e] m)
-(defmethod handle-event :cucumber/test-case-finished [m e] m)
-(defmethod handle-event :cucumber/test-run-finished [m e] m)
-(defmethod handle-event :cucumber/snippets-suggested-event [m e] m)
-
-
+(defn execute! [opts]
+  (let [event-bus        (event-adaptor (:state opts) (:handler opts))
+        feature-supplier (feature-supplier (:features opts))
+        runtime          (runtime (assoc opts
+                                         :feature-supplier feature-supplier
+                                         :event-bus event-bus))]
+    (.run runtime)))
 
 (comment
 
@@ -210,5 +206,15 @@
               )]
     f
     )
+
+  (execute! {:features (-> (load-features ["test/features"])
+                           first
+                           lambdaisland.cucumber.gherkin/gherkin->edn
+                           lambdaisland.cucumber.gherkin/dedupe-feature
+                           second
+                           lambdaisland.cucumber.gherkin/edn->gherkin
+                           vector)
+             :glue ["test/features/step_definitions"]})
+
 
   )

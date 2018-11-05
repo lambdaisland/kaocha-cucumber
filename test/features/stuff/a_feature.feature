@@ -2,20 +2,6 @@ Feature: Is it Friday yet?
   Everybody wants to know when it's Friday
   # Most people at least
 
-  Background:
-    Given a gregorian calendar
-    Given the following users exist:
-      | name   | email              | twitter         |
-      | Aslak  | aslak@cucumber.io  | @aslak_hellesoy |
-      | Julien | julien@cucumber.io | @jbpros         |
-      | Matt   | matt@cucumber.io   | @mattwynne      |
-    Given a file "hello.txt" with
-      """markdown
-      Dear bozo,
-
-      Please click this link to reset your password
-      """
-
 
   Scenario: Sunday isn't Friday
     Given today is Sunday

@@ -1,123 +1,159 @@
 (ns kaocha.type.cucumber
-  (:import [cucumber.runner EventBus]
-           [cucumber.runtime Backend BackendSupplier FeatureSupplier RuntimeOptions]
-           [cucumber.runtime.io FileResourceLoader]
-           [cucumber.runtime.model FeatureLoader]))
+  (:require [kaocha.core-ext :refer :all]
+            [clojure.spec.alpha :as s]
+            [kaocha.type.ns :as type.ns]
+            [kaocha.testable :as testable]
+            [kaocha.classpath :as classpath]
+            [kaocha.load :as load]
+            [clojure.java.io :as io]
+            [clojure.test :as t]
+            [lambdaisland.cucumber.jvm :as jvm]
+            [lambdaisland.cucumber.gherkin :as gherkin]
+            [clojure.string :as str]
+            [kaocha.hierarchy :as hierarchy]
+            [kaocha.result :as result]
+            [kaocha.type :as type]
+            [clojure.walk :as walk]
+            [kaocha.report :as report]))
 
-(defn backend [resource-loader]
-  (reify Backend
-    (loadGlue [_ a-glue glue-paths]
-      (reset! glue a-glue)
-      (doseq [path glue-paths
-              resource (.resources resource-loader path ".clj")]
-        (binding [*ns* (create-ns 'cucumber.runtime.clj)]
-          (load-script (.getPath resource)))))
+(defn scenario->testable [feature suite]
+  (let [scenario (first (gherkin/scenarios feature))]
+    {::testable/type :kaocha.type/cucumber-scenario
+     ::testable/id (keyword (-> (:uri feature)
+                                (str/replace #"/" "-")
+                                (str/replace #" " "_")
+                                (str/replace #"\.feature$" ""))
+                            (str "line-" (-> scenario :location :line)))
+     ::testable/meta (into {:file (:uri feature)
+                            :line (-> scenario :location :line)}
+                           (map
+                            (fn [{:keys [name]}]
+                              [(keyword (subs name 1)) true]))
+                           (:tags scenario))
+     ::feature feature
+     ::glue-paths (:cucumber/glue-paths suite)}))
 
-    (buildWorld [this])
+(defn feature->testable [feature suite]
+  {::testable/type :kaocha.type/cucumber-feature
+   ::testable/id (-> (:uri feature)
+                     (str/replace #"/" "-")
+                     (str/replace #" " "_")
+                     (str/replace #"\.feature$" "")
+                     keyword)
+   :kaocha.test-plan/tests (map #(scenario->testable % suite) (gherkin/dedupe-feature feature))})
 
-    (disposeWorld [this])
+(defmethod testable/-load :kaocha.type/cucumber [testable]
+  (let [{:kaocha/keys [test-paths]} testable]
+    (assoc testable
+           :kaocha.test-plan/tests
+           (map (comp #(feature->testable % testable) gherkin/gherkin->edn) (jvm/load-features test-paths)))))
 
-    (getSnippet [this step keyword function-name-generator]
-      (.getSnippet snippet-generator step keyword nil))))
+(defmethod testable/-run :kaocha.type/cucumber [testable test-plan]
+  (t/do-report {:type :begin-test-suite})
+  (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
+        testable (-> testable
+                     (dissoc :kaocha.test-plan/tests)
+                     (assoc :kaocha.result/tests results))]
+    (t/do-report {:type :end-test-suite
+                  :kaocha/testable testable})
+    testable))
 
-(defn backend-supplier [resource-loader]
-  (reify BackendSupplier (get [this] [(backend resource-loader)])))
+(defmethod testable/-run :kaocha.type/cucumber-feature [testable test-plan]
+  (t/do-report {:type :cucumber/begin-feature})
+  (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
+        testable (-> testable
+                     (dissoc :kaocha.test-plan/tests)
+                     (assoc :kaocha.result/tests results))]
+    (t/do-report {:type :cucumber/end-feature
+                  :kaocha/testable testable})
+    testable))
 
-(defn runtime-options [opts]
-  (let [default (RuntimeOptions. [])]
-    (proxy [RuntimeOptions] [[]]
-      (^boolean isMultiThreaded []
-       (> (.getThreads this) 1))
-      (^List getPluginFormatterNames []
-       (:plugin-formatter-names opts (.getPluginFormatterNames default)))
-      (^List getPluginSummaryPrinterNames []
-       (:plugin-summary-printer-names opts (.getPluginSummaryPrinterNames default)))
-      (^List getPluginStepDefinitionReporterNames []
-       (:plugin-step-definition-reporter-names opts (.getPluginStepDefinitionReporterNames default)))
-      (^List getGlue []
-       (:glue opts (.getGlue default)))
-      (^boolean isStrict []
-       (:strict? opts (.isStrict default)))
-      (^boolean isDryRun []
-       (:dry-run? opts (.isDryRun default)))
-      (^boolean isWip []
-       (:wip? opts (.isWip default)))
-      (^List getFeaturePaths []
-       (:feature-paths opts (.getFeaturePaths default)))
-      (^List getNameFilters []
-       (:name-filters opts (.getNameFilters default)))
-      (^List getTagFilters []
-       (:tag-filter opts (.getTagFilters default)))
-      (^Map getLineFilters []
-       (:line-filters opts (.getLineFilters default)))
-      (^boolean isMonochrome []
-       (:monochrome? opts (.isMonochrome default)))
-      (^SnippetType getSnippetType []
-       (:snippet-type opts (.getSnippetType default)))
-      (^List getJunitOptions []
-       (:junit-options opts (.getJunitOptions default)))
-      (^int getThreads []
-       (:threads opts (.getThreads default))))))
+(defmulti handle-event (fn [_ e] (jvm/event->type e)))
 
-(defn resource-loader []
-  (FileResourceLoader.))
+(defmethod handle-event :default [m e] m)
 
-(defn feature-loader []
-  (FeatureLoader. (resource-loader)))
+(defmethod handle-event :cucumber/test-run-started [m e] m)
+(defmethod handle-event :cucumber/test-source-read [m e] m)
+(defmethod handle-event :cucumber/test-case-started [m e] m)
+(defmethod handle-event :cucumber/test-step-started [m e] m)
+(defmethod handle-event :cucumber/test-step-finished [m e] m)
+(defmethod handle-event :cucumber/test-case-finished [m e]
+  (let [{:keys [status error]} (jvm/result->edn (.result e))]
+    (prn status)
+    (case status
+      :passed
+      (t/do-report {:type :pass})
+      :failed
+      (t/do-report {:type :error
+                    :actual error})
+      :undefined
+      (t/do-report {:type :kaocha/pending})
 
-(defn feature-supplier [features]
-  (reify FeatureSupplier (get [this] features)))
+      :pending
+      (t/do-report {:type :kaocha/pending})
 
-(defn event-bus []
-  (let [events (atom [])]
-    [events
-     (reify EventBus
-       (getTime [_]
-         (System/nanoTime))
-       (send [_ e]
-         (swap! events conj e))
-       (sendAll [_ es]
-         (swap! events into es))
-       (registerHandlerFor [_ _ _])
-       (removeHandlerFor [_ _ _])
-       )]))
+      nil))
+  m)
+
+(defmethod handle-event :cucumber/test-run-finished [m e] m)
+(defmethod handle-event :cucumber/snippets-suggested-event [m e]
+  (t/do-report {:type :cucumber/snippet-suggested
+                :snippets (.snippets e)
+                :locations (.stepLocations e)})
+  m)
+
+(defmethod testable/-run :kaocha.type/cucumber-scenario [testable test-plan]
+  (let [{::keys [feature]} testable
+        state              (atom {})]
+    (type/with-report-counters
+      (t/do-report {:type :cucumber/begin-scenario})
+      (jvm/execute! {:features [(gherkin/edn->gherkin feature)]
+                     :glue     (::glue-paths testable)
+                     :state    state
+                     :handler  handle-event})
+
+      (t/do-report {:type :cucumber/end-scenario})
+      (merge testable
+             {:kaocha.result/count 1}
+             (type/report-count)))))
+
+(s/def :kaocha.type/cucumber (s/keys :req [:kaocha/source-paths
+                                           :kaocha/test-paths
+                                           :cucumber/glue-paths]))
+
+(s/def :kaocha.type/cucumber-feature any?)
+(s/def :kaocha.type/cucumber-scenario (s/keys :reg [::feature]))
 
 
+(hierarchy/derive! :cucumber/begin-feature :kaocha/begin-group)
+(hierarchy/derive! :cucumber/end-feature :kaocha/end-group)
 
-(defn runtime [opts]
-  (.. (cucumber.runtime.Runtime/builder)
-      (withRuntimeOptions (runtime-options opts))
-      (withBackendSupplier (backend-supplier (resource-loader)))
-      (withFeatureSupplier (:feature-supplier opts))
-      (withEventBus (:event-bus opts))
-      (build)))
+(hierarchy/derive! :cucumber/begin-scenario :kaocha/begin-test)
+(hierarchy/derive! :cucumber/end-scenario :kaocha/end-test)
 
-(-> (feature-loader)
-    (.load ["test/features"])
-    (feature-supplier)
-    (.get))
+(hierarchy/derive! :cucumber/snippet-suggested :kaocha/deferred)
 
-(let [[events event-bus] (event-bus)
-      feature-supplier (-> (feature-loader)
-                           (.load ["test/features"])
-                           (feature-supplier))
-      runtime (runtime {:feature-supplier feature-supplier
-                        :glue ["test/features"]
-                        :event-bus event-bus})]
-  (.run runtime)
-  events
-  )
+(defmethod t/report :cucumber/snippet-suggested [{:keys [snippets locations] :as m}]
+  (let [scenarios (gherkin/scenarios (get-in m [:kaocha/testable ::feature]))
+        steps     (mapcat :steps scenarios)]
+    (t/with-test-out
+      (println "\nPENDING in" (report/testing-vars-str m))
+      (doseq [snippet  (:snippets m)
+              location (:locations m)
+              step     steps
+              :let     [line (.getLine location)]]
+        (when (= line (-> step :location :line))
+          (println (str/replace snippet "**KEYWORD**" (:keyword step))))))))
 
-(let [feature (-> (feature-loader)
-                  (.load ["test/features"])
-                  (feature-supplier)
-                  (.get)
-                  first)]
-  ;; https://www.programcreek.com/java-api-examples/?code=mauriciotogneri/green-coffee/green-coffee-master/greencoffee/src/main/java/gherkin/pickles/Compiler.java
+(comment
+  (require 'kaocha.repl)
 
-  (.getUri feature)
-  (.getChildren (.getFeature (.getGherkinFeature feature)))
-  (.getTags (.getFeature (.getGherkinFeature feature)))
-  (.getName (first (.getChildren (.getFeature (.getGherkinFeature feature)))))
-  (.getName (.getFeature (.getGherkinFeature feature)))
+  (kaocha.repl/test-plan {:tests [{:id :unit
+                                   :type :kaocha.type/cucumber
+                                   :kaocha/source-paths ["src"]
+                                   :kaocha/test-paths ["test/features"]
+                                   :cucumber/glue-paths ["test/features/step_definitions"]}]})
+
+  (kaocha.repl/run-all)
+
   )
