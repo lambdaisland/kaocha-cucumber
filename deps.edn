@@ -6,6 +6,4 @@
   {}
 
   :test
-  {:extra-deps {lambdaisland/kaocha {
-                                     :local/root      "/home/arne/github/kaocha"
-                                     #_#_:mvn/version "0.0-239"}}}}}
+  {:extra-deps {lambdaisland/kaocha {:mvn/version "0.0-239"}}}}}

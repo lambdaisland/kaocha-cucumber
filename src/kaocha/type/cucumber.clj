@@ -149,6 +149,8 @@
 
 (hierarchy/derive! :cucumber/snippets-suggested :kaocha/deferred)
 
+(derive :kaocha.type/cucumber-scenario :kaocha.testable.type/leaf)
+
 (defmethod t/report :cucumber/snippets-suggested [{:keys [snippets] :as m}]
   (println "\nPENDING in" (report/testing-vars-str m))
   (println "You can implement missing steps with the snippets below:");
