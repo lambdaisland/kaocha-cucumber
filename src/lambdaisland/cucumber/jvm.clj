@@ -22,7 +22,7 @@
       (str
        "({0} \"{1}\" [{3}]\n"
        "  ;; {4}\n"
-       "  (pending!))"))
+       "  (pending!))\n"))
     (arguments [_ argument-types]
       (->> (into {} argument-types)
            (map key)

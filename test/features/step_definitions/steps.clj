@@ -16,11 +16,6 @@
 (Then "I should be told {string}" [{:keys [today asked]} string]
   (is (= (day? today asked) string)))
 
-(Given "there are {int} cucumbers" [state int1]
-  (pending!))
-
-(When "I eat {int} cucumbers" [state int1]
-  (pending!))
 
 (Then "I should have {int} cucumbers" [state int1]
   (pending!))

@@ -30,6 +30,7 @@
                             (fn [{:keys [name]}]
                               [(keyword (subs name 1)) true]))
                            (:tags scenario))
+     ::testable/desc (or (:name scenario) "<no name>")
      ::feature feature
      ::glue-paths (:cucumber/glue-paths suite)}))
 
@@ -40,6 +41,7 @@
                      (str/replace #" " "_")
                      (str/replace #"\.feature$" "")
                      keyword)
+   ::testable/desc (or (get-in feature [:document :feature :name]) "<no name>")
    :kaocha.test-plan/tests (map #(scenario->testable % suite) (gherkin/dedupe-feature feature))})
 
 (defmethod testable/-load :kaocha.type/cucumber [testable]
@@ -79,7 +81,6 @@
 (defmethod handle-event :cucumber/test-step-finished [m e] m)
 (defmethod handle-event :cucumber/test-case-finished [m e]
   (let [{:keys [status error]} (jvm/result->edn (.result e))]
-    (prn status)
     (case status
       :passed
       (t/do-report {:type :pass})
@@ -92,26 +93,32 @@
       :pending
       (t/do-report {:type :kaocha/pending})
 
-      nil))
+      (prn status)))
   m)
 
-(defmethod handle-event :cucumber/test-run-finished [m e] m)
+(defmethod handle-event :cucumber/test-run-finished [m e]
+  (update m :done deliver :ok))
+
 (defmethod handle-event :cucumber/snippets-suggested-event [m e]
-  (t/do-report {:type :cucumber/snippet-suggested
-                :snippets (.snippets e)
-                :locations (.stepLocations e)})
-  m)
+  ;; (t/do-report {:type :cucumber/snippet-suggested
+  ;;               :snippets (.snippets e)
+  ;;               :locations (.stepLocations e)})
+  (update (merge {::snippets []} m) ::snippets conj {:snippets (.snippets e)
+                                                     :locations (.stepLocations e)}))
 
 (defmethod testable/-run :kaocha.type/cucumber-scenario [testable test-plan]
   (let [{::keys [feature]} testable
-        state              (atom {})]
+        done               (promise)
+        state              (atom {:done done})]
     (type/with-report-counters
       (t/do-report {:type :cucumber/begin-scenario})
       (jvm/execute! {:features [(gherkin/edn->gherkin feature)]
                      :glue     (::glue-paths testable)
                      :state    state
                      :handler  handle-event})
-
+      (when-let [snippets (::snippets @state)]
+        (t/do-report {:type :cucumber/snippets-suggested
+                      :snippets snippets}))
       (t/do-report {:type :cucumber/end-scenario})
       (merge testable
              {:kaocha.result/count 1}
@@ -131,19 +138,21 @@
 (hierarchy/derive! :cucumber/begin-scenario :kaocha/begin-test)
 (hierarchy/derive! :cucumber/end-scenario :kaocha/end-test)
 
-(hierarchy/derive! :cucumber/snippet-suggested :kaocha/deferred)
+(hierarchy/derive! :cucumber/snippets-suggested :kaocha/deferred)
 
-(defmethod t/report :cucumber/snippet-suggested [{:keys [snippets locations] :as m}]
+(defmethod t/report :cucumber/snippets-suggested [{:keys [snippets] :as m}]
+  (println "\nPENDING in" (report/testing-vars-str m))
+  (println "You can implement missing steps with the snippets below:");
   (let [scenarios (gherkin/scenarios (get-in m [:kaocha/testable ::feature]))
         steps     (mapcat :steps scenarios)]
     (t/with-test-out
-      (println "\nPENDING in" (report/testing-vars-str m))
-      (doseq [snippet  (:snippets m)
-              location (:locations m)
+      (doseq [snipcol snippets
+              snippet  (:snippets snipcol)
+              location (:locations snipcol)
               step     steps
               :let     [line (.getLine location)]]
         (when (= line (-> step :location :line))
-          (println (str/replace snippet "**KEYWORD**" (:keyword step))))))))
+          (println (str/replace snippet "**KEYWORD** " (:keyword step))))))))
 
 (comment
   (require 'kaocha.repl)
