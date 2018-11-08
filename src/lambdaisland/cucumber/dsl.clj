@@ -78,13 +78,28 @@
                        (getOrder [hd] 0)
                        (isScenarioScoped [hd] false))))))
 
+(defmulti coerce-arg type)
+
+(defmethod coerce-arg :default [x] x)
+
+(defmethod coerce-arg io.cucumber.datatable.DataTable [table]
+  (into [] (map (partial into [])) (.cells table)))
+
 (defmacro step-macros [& names]
   (cons 'do
         (for [name names]
           `(defmacro ~name {:style/indent [2]} [pattern# binding-form# & body#]
              `(add-step-definition ~pattern#
                                    (count '~binding-form#)
-                                   (fn ~binding-form# ~@body#)
+                                   (fn [& ~'args#]
+                                     (let [~binding-form# (map coerce-arg ~'args#)
+                                           ~'result# (do ~@body#)]
+                                       (when (not (map? ~'result#))
+                                         (throw (ex-info "State returned from step must be a map"
+                                                         {:keyword '~'~name
+                                                          :pattern ~pattern#
+                                                          :actual ~'result#})))
+                                       ~'result#))
                                    '~{:file *file*
                                       :line (:line (meta ~'&form))
                                       })))))
