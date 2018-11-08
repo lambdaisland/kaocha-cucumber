@@ -33,7 +33,8 @@
                            (:tags scenario))
      ::testable/desc (or (:name scenario) "<no name>")
      ::feature feature
-     ::glue-paths (:cucumber/glue-paths suite)}))
+     ::glue-paths (:cucumber/glue-paths suite)
+     ::param-types (:cucumber/parameter-types suite)}))
 
 (defn feature->testable [feature suite]
   {::testable/type :kaocha.type/cucumber-feature
@@ -73,7 +74,9 @@
 
 (defmulti handle-event (fn [_ e] (jvm/event->type e)))
 
-(defmethod handle-event :default [m e] m)
+(defmethod handle-event :default [m e]
+  (println "UNHANDLED EVENT")
+  (clojure.pprint/pprint m))
 
 (defmethod handle-event :cucumber/test-run-started [m e] m)
 (defmethod handle-event :cucumber/test-source-read [m e] m)
@@ -117,7 +120,8 @@
        (jvm/execute! {:features [(gherkin/edn->gherkin feature)]
                       :glue     (::glue-paths testable)
                       :state    state
-                      :handler  handle-event})
+                      :handler  handle-event
+                      :param-types (::param-types testable)})
        (catch :kaocha/fail-fast e)
        (catch Throwable e
          (t/do-report {:type :error
@@ -135,10 +139,28 @@
 
 (s/def :kaocha.type/cucumber (s/keys :req [:kaocha/source-paths
                                            :kaocha/test-paths
-                                           :cucumber/glue-paths]))
+                                           :cucumber/glue-paths]
+                                     :opt [:cucumber/parameter-types]))
 
 (s/def :kaocha.type/cucumber-feature any?)
-(s/def :kaocha.type/cucumber-scenario (s/keys :reg [::feature]))
+(s/def :kaocha.type/cucumber-scenario (s/keys :req [::feature]))
+
+(s/def :cucumber/glue-paths (s/coll-of string?))
+
+(s/def :cucumber/parameter-types (s/coll-of :cucumber/parameter-type))
+(s/def :cucumber/parameter-type (s/keys :req [:cucumber.parameter/name
+                                              :cucumber.parameter/transformer]
+                                        :opt [:cucumber.parameter/regexp
+                                              :cucumber.parameter/class
+                                              :cucumber.parameter/suggest?
+                                              :cucumber.parameter/prefer-for-regexp-match?]))
+
+(s/def :cucumber.parameter/name string?)
+(s/def :cucumber.parameter/transformer qualified-symbol?)
+(s/def :cucumber.parameter/regexp string?)
+(s/def :cucumber.parameter/class simple-symbol?)
+(s/def :cucumber.parameter/suggest? boolean?)
+(s/def :cucumber.parameter/prefer-for-regexp-match? boolean?)
 
 
 (hierarchy/derive! :cucumber/begin-feature :kaocha/begin-group)
@@ -154,10 +176,15 @@
 (defmethod t/report :cucumber/snippets-suggested [{:keys [snippets] :as m}]
   (println "\nPENDING in" (report/testing-vars-str m))
   (println "You can implement missing steps with the snippets below:");
-  (let [scenarios (gherkin/scenarios (get-in m [:kaocha/testable ::feature]))
+  ;;(clojure.pprint/pprint snippets)
+  (let [scenarios (get-in m [:kaocha/testable
+                             ::feature
+                             :document
+                             :feature
+                             :children])
         steps     (mapcat :steps scenarios)]
     (t/with-test-out
-      (doseq [snipcol snippets
+      (doseq [snipcol  snippets
               snippet  (:snippets snipcol)
               location (:locations snipcol)
               step     steps

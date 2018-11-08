@@ -13,9 +13,15 @@
 (When "I ask whether it's (.*) yet" [m day]
   (assoc m :asked day))
 
-(Then "I should be told {string}" [{:keys [today asked]} string]
-  (is (= (day? today asked) string)))
+(Then "I should be told {string}" [{:keys [today asked] :as state} string]
+  (is (= (day? today asked) string))
+  state)
 
 
-(Then "I should have {int} cucumbers" [state int1]
-  (pending!))
+(Then "I should have {int} cucumbers" [state cnt]
+  (assoc state :cukes cnt))
+
+(Given "a {color} ball" [state color]
+  (prn (.hex color))
+  state
+  )

@@ -7,10 +7,12 @@
            cucumber.runtime.model.FeatureLoader
            [cucumber.runtime.snippets Snippet SnippetGenerator]
            io.cucumber.stepexpression.TypeRegistry
-           java.util.Locale))
+           java.util.Locale
+           [io.cucumber.cucumberexpressions ParameterType Transformer]))
 
 (def ^:dynamic *glue* nil)
 (def ^:dynamic *state* nil)
+(def ^:dynamic *type-registry* nil)
 
 (defn camel->kebap [s]
   (str/join "-" (map str/lower-case (str/split s #"(?=[A-Z])"))))
@@ -21,14 +23,15 @@
     (template [_]
       (str
        "({0} \"{1}\" [{3}]\n"
-       "  ;; {4}\n"
+       "  ;; {4}\n{5}"
        "  (pending!))\n"))
-    (arguments [_ argument-types]
+    (arguments [_ argument-types] ;; map from name to type
       (->> (into {} argument-types)
-           (map key)
+           (map (comp camel->kebap key))
            (cons "state")
            (str/join " ")))
-    (tableHint [_] nil)
+    (tableHint [_]
+      "  ;; The last argument is a vector of vectors of strings.\n")
     (escapePattern [_ pattern]
       (str/replace (str pattern) "\"" "\\\""))))
 
@@ -38,16 +41,36 @@
   ([locale]
    (TypeRegistry. locale)))
 
+(defn register-type [registry {:cucumber.parameter/keys [name
+                                                         regexp
+                                                         class
+                                                         transformer
+                                                         suggest?
+                                                         prefer-for-regexp-match?]
+                               :or {suggest? true
+                                    prefer-for-regexp-match? false
+                                    class 'java.lang.Object}}]
+  (require (symbol (namespace transformer)))
+  (let [transformer (resolve transformer)
+        klass (Class/forName (str class))]
+    (.defineParameterType registry
+                          (ParameterType. name
+                                          regexp
+                                          klass
+                                          (reify Transformer
+                                            (transform [_ s] (transformer s)))
+                                          suggest?
+                                          prefer-for-regexp-match?))))
+
 (defn load-script [path]
   (try
     (load-file path)
     (catch Throwable t
       (throw (CucumberException. t)))))
 
-(defn backend [resource-loader]
+(defn backend [resource-loader type-registry]
   (let [clj-snip       (clojure-snippet)
-        type-reg       (type-registry)
-        param-type-reg (.parameterTypeRegistry type-reg)
+        param-type-reg (.parameterTypeRegistry type-registry)
         snip-gen       (SnippetGenerator. clj-snip param-type-reg)]
 
     (reify Backend
@@ -66,8 +89,8 @@
       (getSnippet [this step keyword function-name-generator]
         (.getSnippet snip-gen step keyword nil)))))
 
-(defn backend-supplier [resource-loader]
-  (reify BackendSupplier (get [this] [(backend resource-loader)])))
+(defn backend-supplier [resource-loader type-registry]
+  (reify BackendSupplier (get [this] [(backend resource-loader type-registry)])))
 
 (defn runtime-options [opts]
   (let [default (RuntimeOptions. [])]
@@ -139,12 +162,15 @@
     (removeHandlerFor [_ _ _])))
 
 (defn runtime [opts]
-  (.. (cucumber.runtime.Runtime/builder)
-      (withRuntimeOptions (runtime-options opts))
-      (withBackendSupplier (backend-supplier (resource-loader)))
-      (withFeatureSupplier (:feature-supplier opts))
-      (withEventBus (:event-bus opts))
-      (build)))
+  (let [registry (:type-registry opts)
+        loader (resource-loader)]
+    (run! (partial register-type registry) (:param-types opts))
+    (.. (cucumber.runtime.Runtime/builder)
+        (withRuntimeOptions (runtime-options opts))
+        (withBackendSupplier (backend-supplier loader registry))
+        (withFeatureSupplier (:feature-supplier opts))
+        (withEventBus (:event-bus opts))
+        (build))))
 
 (defn load-features [feature-paths]
   (.load (feature-loader) feature-paths))
@@ -170,10 +196,13 @@
 (defn execute! [opts]
   (let [event-bus        (event-adaptor (:state opts) (:handler opts))
         feature-supplier (feature-supplier (:features opts))
+        type-registry    (type-registry)
         runtime          (runtime (assoc opts
+                                         :type-registry type-registry
                                          :feature-supplier feature-supplier
                                          :event-bus event-bus))]
-    (.run runtime)))
+    (binding [*type-registry* type-registry]
+      (.run runtime))))
 
 (comment
 

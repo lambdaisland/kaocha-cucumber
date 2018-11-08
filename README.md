@@ -74,13 +74,12 @@ Feature: Coffee shop order fulfilment
 
 And run it
 
-```
+``` shell
 bin/kaocha features
 ```
 
 Since the steps aren't implemented yet, Kaocha will tell you what you're
 missing.
-
 
 ```
 $ bin/kaocha features
@@ -156,6 +155,41 @@ Any remaining arguments correspond with capturing groups or "output parameters"
 in the pattern.
 
 Inside the step definitions you use `clojure.test` style assertions.
+
+## Parameter Types
+
+Data tables will be converted to a vector of vectors, other types will be passed
+on as-is.
+
+To implement [Custom Parameter
+Types](https://docs.cucumber.io/cucumber/cucumber-expressions/#custom-parameter-types),
+add a `:cucumber/parameter-types` to your config.
+
+``` clojure
+#kaocha/v1
+{:tests [{:id :cukes
+          :type :kaocha.type/cucumber
+          :source-paths ["src"]
+          :test-paths ["test/features" "test/support"]
+          :cucumber/glue-paths ["test/step_definitions"]
+          :cucumber/parameter-types
+          [#:cucumber.parameter
+           {:name "color"
+            :regexp "red|blue|yellow|green"
+            :class kaocha.cucumber.extra_types.Color
+            :transformer kaocha.cucumber.extra-types/parse-color}]}]}
+```
+
+Following keys are understood
+
+``` clojure
+:cucumber.parameter/name                     ;;=> string?
+:cucumber.parameter/transformer              ;;=> qualified-symbol?
+:cucumber.parameter/regexp                   ;;=> string?
+:cucumber.parameter/class                    ;;=> simple-symbol?
+:cucumber.parameter/suggest?                 ;;=> boolean?
+:cucumber.parameter/prefer-for-regexp-match? ;;=> boolean?
+```
 
 ## Relationship with cucumber-jvm-clojure / lein-cucumber
 

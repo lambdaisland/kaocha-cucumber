@@ -8,7 +8,9 @@
            [java.util Locale]))
 
 
-(def expression-factory (StepExpressionFactory. (jvm/type-registry)))
+(defn expression-factory []
+  (assert jvm/*type-registry*)
+  (StepExpressionFactory. jvm/*type-registry*))
 
 (defn- location-str [{:keys [file line]}]
   (str file ":" line))
@@ -20,8 +22,9 @@
      (reify
        StepDefinition
        (matchedArguments [_ step]
-         (let [step-expression (.createExpression expression-factory pattern)
-               argument-matcher (ExpressionArgumentMatcher. step-expression)]
+         (let [expression-factory (expression-factory)
+               step-expression    (.createExpression expression-factory pattern)
+               argument-matcher   (ExpressionArgumentMatcher. step-expression)]
            (.argumentsFrom argument-matcher step (into-array Class (repeat argc Object)))))
        (getLocation [_ detail]
          (location-str location))

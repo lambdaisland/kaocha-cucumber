@@ -2,7 +2,6 @@ Feature: Is it Friday yet?
   Everybody wants to know when it's Friday
   # Most people at least
 
-
   Scenario: Sunday isn't Friday
     Given today is Sunday
     When I ask whether it's Friday yet
@@ -15,6 +14,7 @@ Feature: Is it Friday yet?
 
   @end2end
   Scenario Outline: eating
+    Given a blue ball
     Given there are <start> cucumbers
     When I eat <eat> cucumbers
     Then I should have <left> cucumbers
