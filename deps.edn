@@ -1,4 +1,4 @@
-{:paths ["src" "test" "resources"]
+{:paths ["src" "test/support" "resources"]
  :deps  {org.clojure/clojure       {:mvn/version "1.10.0-beta4"}
          io.cucumber/cucumber-java {:mvn/version "4.2.0"}}
  :aliases
@@ -6,5 +6,12 @@
   {}
 
   :test
-  {:extra-deps {lambdaisland/kaocha {:local/root "/home/arne/github/kaocha"}
-                #_{:mvn/version "0.0-248"}}}}}
+  {:extra-deps {lambdaisland/kaocha {:mvn/version "0.0-266"}}}
+
+  :junit-xml
+  {:extra-deps {lambdaisland/kaocha-junit-xml {:mvn/version "0.0-18"}}}
+
+  :clojure-1.9
+  {:extra-deps
+   ^:depot/ignore
+   {org.clojure/clojure {:mvn/version "1.9.0"}}}}}

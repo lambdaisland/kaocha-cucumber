@@ -1,18 +1,71 @@
-version: 2
+version: 2.1
+
+shared_steps: &shared_steps
+  - checkout
+  - run: mkdir -p ~/downloads
+  - restore_cache:
+      keys:
+      - kaocha-cucumber-001-{{ .Environment.EXTRA_ALIASES }}-{{ checksum "deps.edn" }}
+      # fallback to using the latest cache if no exact match is found
+      - kaocha-cucumber-001-
+  - run:
+      command: |
+        cd ~/downloads
+        if [[ ! -f "linux-install-1.9.0.394.sh" ]]; then
+          curl -O https://download.clojure.org/install/linux-install-1.9.0.394.sh
+          chmod +x linux-install-1.9.0.394.sh
+        fi
+  - run: sudo ~/downloads/linux-install-1.9.0.394.sh
+  - run: sudo apt-get install colordiff
+  - run: clojure -A:dev:test:junit-xml${EXTRA_ALIASES} -Spath
+  - save_cache:
+      paths:
+        - ~/.m2
+        - ~/downloads
+      key: kaocha-cucumber-001-{{ .Environment.EXTRA_ALIASES }}-{{ checksum "deps.edn" }}
+  - run: mkdir -p test-results/kaocha
+  - run: java -version
+  - run: clojure -e '(println (clojure-version))'
+  - run: clojure -A:dev:test:junit-xml${EXTRA_ALIASES} -m kaocha.runner --reporter documentation --plugin junit-xml --plugin cloverage --codecov --junit-xml-file test-results/kaocha/results.xml
+  - run: curl -s https://codecov.io/bash | bash -s - -f target/coverage/codecov.json
+  - store_test_results:
+      path: test-results
+
+# https://github.com/CircleCI-Public/circleci-dockerfiles/tree/master/openjdk/images
 jobs:
-  build:
+  "java-8-clojure-1.9":
     docker:
-      - image: circleci/clojure:tools-deps
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "deps.edn" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
-      - run: clojure -A:dev:test -Spath
-      - save_cache:
-          paths:
-            - ~/.m2
-          key: v1-dependencies-{{ checksum "deps.edn" }}
-      - run: clojure -A:dev:test -m kaocha.runner --reporter kaocha.report/documentation
+      - image: circleci/openjdk:8u181-jdk-stretch
+    environment:
+      EXTRA_ALIASES: ":clojure-1.9"
+    steps: *shared_steps
+  "java-8-clojure-1.10":
+    docker:
+      - image: circleci/openjdk:8u181-jdk-stretch
+    steps: *shared_steps
+  "java-9-clojure-1.9":
+    docker:
+      - image: circleci/openjdk:9.0.4-12-jdk-sid
+    environment:
+      EXTRA_ALIASES: ":clojure-1.9"
+    steps: *shared_steps
+  "java-9-clojure-1.10":
+    docker:
+      - image: circleci/openjdk:9.0.4-12-jdk-sid
+    steps: *shared_steps
+  "java-11-clojure-1.9":
+    docker:
+      - image: circleci/openjdk:11.0.1-jdk-sid
+    environment:
+      EXTRA_ALIASES: ":clojure-1.9"
+    steps: *shared_steps
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - "java-8-clojure-1.9"
+      - "java-8-clojure-1.10"
+      - "java-9-clojure-1.9"
+      - "java-9-clojure-1.10"
+      - "java-11-clojure-1.9"

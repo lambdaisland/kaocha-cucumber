@@ -51,7 +51,11 @@ Now add a Cucumber test suite to `tests.edn`
           :type                :kaocha.type/cucumber
           :source-paths        ["src"]
           :test-paths          ["test/features"]
-          :cucumber/glue-paths ["test/feature_steps"]}]}
+          :cucumber/glue-paths ["test/feature_steps"]
+          :cucumber/locale     "de-DE"  ; optional. Currently only for number
+                                        ; format parsing, passed to
+                                        ; java.util.Locale/forLanguageTag
+          }]}
 ```
 
 Finally create a file `test/features/coffeeshop.feature` with the following contents
