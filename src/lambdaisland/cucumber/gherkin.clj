@@ -13,8 +13,8 @@
     (first list)))
 
 (defn location [node]
-  ^{:type :gherkin/location}
-  {:line (some-> node
+  {:type :gherkin/location
+   :line (some-> node
                  .getLocation
                  .getLine)
    :column (some-> node
@@ -223,17 +223,6 @@
        (scenarios feature)))
 
 (comment
-  (= (read-string (slurp (io/file "resources/lambdaisland/gherkin/test_feature.edn")))
-     (gherkin->edn (parse "resources/lambdaisland/gherkin/test_feature.feature")))
-
-
-  (let [x (-> "resources/lambdaisland/gherkin/test_feature.feature"
-              parse
-              gherkin->edn)
-        y (-> x edn->gherkin gherkin->edn)]
-    (= x y))
-
-
   (->> "resources/lambdaisland/gherkin/test_feature.feature"
        parse
        gherkin->edn
@@ -241,8 +230,6 @@
        last
        :tags
        )
-
-
 
   (-> (jvm/feature-loader)
       (.load ["test/features"])
@@ -256,4 +243,7 @@
     (binding [*out* w]
       (clojure.pprint/pprint
        (gherkin->edn (parse "resources/lambdaisland/gherkin/test_feature.feature"))
-       ))))
+       )))
+
+
+  )
