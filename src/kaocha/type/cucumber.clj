@@ -3,6 +3,7 @@
             [clojure.spec.alpha :as s]
             [kaocha.type.ns :as type.ns]
             [kaocha.testable :as testable]
+            [kaocha.output :as output]
             [kaocha.classpath :as classpath]
             [kaocha.load :as load]
             [clojure.java.io :as io]
@@ -33,6 +34,7 @@
                            (:tags scenario))
      ::testable/desc (or (:name scenario) "<no name>")
      ::feature feature
+     ::locale (:cucumber/locale suite)
      ::glue-paths (:cucumber/glue-paths suite)
      ::param-types (:cucumber/parameter-types suite)}))
 
@@ -117,20 +119,22 @@
     (type/with-report-counters
       (t/do-report {:type :cucumber/begin-scenario})
       (try+
-       (jvm/execute! {:features [(gherkin/edn->gherkin feature)]
-                      :glue     (::glue-paths testable)
-                      :state    state
-                      :handler  handle-event
-                      :param-types (::param-types testable)})
+       (jvm/execute! {:features    [(gherkin/edn->gherkin feature)]
+                      :glue        (::glue-paths testable)
+                      :state       state
+                      :handler     handle-event
+                      :param-types (::param-types testable)
+                      :locale      (::locale testable)
+                      :monochrome? (not output/*colored-output*)})
        (catch :kaocha/fail-fast e)
        (catch Throwable e
-         (t/do-report {:type :error
-                       :message "Uncaught exception, not in assertion."
-                       :expected nil
-                       :actual e
+         (t/do-report {:type                    :error
+                       :message                 "Uncaught exception, not in assertion."
+                       :expected                nil
+                       :actual                  e
                        :kaocha.result/exception e})))
       (when-let [snippets (::snippets @state)]
-        (t/do-report {:type :cucumber/snippets-suggested
+        (t/do-report {:type     :cucumber/snippets-suggested
                       :snippets snippets}))
       (t/do-report {:type :cucumber/end-scenario})
       (merge testable
@@ -140,12 +144,14 @@
 (s/def :kaocha.type/cucumber (s/keys :req [:kaocha/source-paths
                                            :kaocha/test-paths
                                            :cucumber/glue-paths]
-                                     :opt [:cucumber/parameter-types]))
+                                     :opt [:cucumber/parameter-types
+                                           :cucumber/locale]))
 
 (s/def :kaocha.type/cucumber-feature any?)
 (s/def :kaocha.type/cucumber-scenario (s/keys :req [::feature]))
 
 (s/def :cucumber/glue-paths (s/coll-of string?))
+(s/def :cucumber/locale? string?)
 
 (s/def :cucumber/parameter-types (s/coll-of :cucumber/parameter-type))
 (s/def :cucumber/parameter-type (s/keys :req [:cucumber.parameter/name

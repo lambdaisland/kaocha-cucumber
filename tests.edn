@@ -3,7 +3,9 @@
           :type :kaocha.type/clojure.test
           :source-paths ["src"]
           :test-paths ["test/unit"]
-          :ns-patterns [".*-test"]}
+          :ns-patterns [".*-test"]
+          :kaocha.filter/skip-meta [:kaocha/skip]
+          }
          #_{:id :cukes
             :type :kaocha.type/cucumber
             :source-paths ["src"]

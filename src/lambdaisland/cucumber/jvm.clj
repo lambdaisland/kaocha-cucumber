@@ -6,9 +6,9 @@
            cucumber.runtime.io.FileResourceLoader
            cucumber.runtime.model.FeatureLoader
            [cucumber.runtime.snippets Snippet SnippetGenerator]
+           [io.cucumber.cucumberexpressions Argument Group ParameterType Transformer]
            io.cucumber.stepexpression.TypeRegistry
-           java.util.Locale
-           [io.cucumber.cucumberexpressions ParameterType Transformer]))
+           java.util.Locale))
 
 (def ^:dynamic *glue* nil)
 (def ^:dynamic *state* nil)
@@ -41,16 +41,30 @@
   ([locale]
    (TypeRegistry. locale)))
 
-(defn register-type [registry {:cucumber.parameter/keys [name
-                                                         regexp
-                                                         class
-                                                         transformer
-                                                         suggest?
-                                                         prefer-for-regexp-match?]
-                               :or {suggest? true
-                                    prefer-for-regexp-match? false
-                                    class 'java.lang.Object}}]
-  (require (symbol (namespace transformer)))
+(defn parse-type
+  "Parse a string based on a type in the registry.
+
+  Provided as a convenience because the way this is hidden away in a tangle of
+  classes is ridiculous."
+  [registry type string]
+  (let [param-type (-> registry
+                       (.parameterTypeRegistry)
+                       (.lookupByTypeName type))
+        group      (Group. string 0 (count string) [])]
+    (assert param-type)
+    (.getValue (Argument. group param-type))))
+
+(defn register-type! [registry {:cucumber.parameter/keys [name
+                                                          regexp
+                                                          class
+                                                          transformer
+                                                          suggest?
+                                                          prefer-for-regexp-match?]
+                                :or {suggest? true
+                                     regexp ""
+                                     prefer-for-regexp-match? false
+                                     class 'java.lang.Object}}]
+  #_(require (symbol (namespace transformer)))
   (let [transformer (resolve transformer)
         klass (Class/forName (str class))]
     (.defineParameterType registry
@@ -90,7 +104,9 @@
         (.getSnippet snip-gen step keyword nil)))))
 
 (defn backend-supplier [resource-loader type-registry]
-  (reify BackendSupplier (get [this] [(backend resource-loader type-registry)])))
+  (reify BackendSupplier
+    (get [this]
+      [(backend resource-loader type-registry)])))
 
 (defn runtime-options [opts]
   (let [default (RuntimeOptions. [])]
@@ -116,7 +132,7 @@
       (^List getNameFilters []
        (:name-filters opts (.getNameFilters default)))
       (^List getTagFilters []
-       (:tag-filter opts (.getTagFilters default)))
+       (:tag-filters opts (.getTagFilters default)))
       (^Map getLineFilters []
        (:line-filters opts (.getLineFilters default)))
       (^boolean isMonochrome []
@@ -137,19 +153,6 @@
 (defn feature-supplier [features]
   (reify FeatureSupplier (get [this] features)))
 
-(defn event-bus []
-  (let [events (atom [])]
-    [events
-     (reify EventBus
-       (getTime [_]
-         (System/nanoTime))
-       (send [_ e]
-         (swap! events conj e))
-       (sendAll [_ es]
-         (swap! events into es))
-       (registerHandlerFor [_ _ _])
-       (removeHandlerFor [_ _ _]))]))
-
 (defn event-adaptor [state handler]
   (reify EventBus
     (getTime [_]
@@ -158,13 +161,13 @@
       (swap! state handler e))
     (sendAll [_ es]
       (swap! state #(reduce handler % es)))
-    (registerHandlerFor [_ _ _])
-    (removeHandlerFor [_ _ _])))
+    ^:cloverage/ignore (registerHandlerFor [_ _ _])
+    ^:cloverage/ignore (removeHandlerFor [_ _ _])))
 
 (defn runtime [opts]
   (let [registry (:type-registry opts)
         loader (resource-loader)]
-    (run! (partial register-type registry) (:param-types opts))
+    (run! (partial register-type! registry) (:param-types opts))
     (.. (cucumber.runtime.Runtime/builder)
         (withRuntimeOptions (runtime-options opts))
         (withBackendSupplier (backend-supplier loader registry))
@@ -175,14 +178,14 @@
 (defn load-features [feature-paths]
   (.load (feature-loader) feature-paths))
 
-(defn event->type [e]
+(defn event->type [^cucumber.api.event.Event e]
   (->> e
        class
        .getSimpleName
        camel->kebap
        (keyword "cucumber")))
 
-(defn result->edn [r]
+(defn result->edn [^cucumber.api.Result r]
   {:status (condp = (.getStatus r)
              Result$Type/PASSED    :passed
              Result$Type/SKIPPED   :skipped
@@ -196,54 +199,12 @@
 (defn execute! [opts]
   (let [event-bus        (event-adaptor (:state opts) (:handler opts))
         feature-supplier (feature-supplier (:features opts))
-        type-registry    (type-registry)
+        type-registry    (type-registry (if-let [loc (:locale opts)]
+                                          (Locale/forLanguageTag loc)
+                                          (Locale/getDefault)))
         runtime          (runtime (assoc opts
                                          :type-registry type-registry
                                          :feature-supplier feature-supplier
                                          :event-bus event-bus))]
     (binding [*type-registry* type-registry]
       (.run runtime))))
-
-(comment
-
-  (-> (feature-loader)
-      (.load ["test/features"])
-      (feature-supplier)
-      (.get))
-
-
-  (let [feature (-> (feature-loader)
-                    (.load ["test/features"])
-                    (feature-supplier)
-                    (.get)
-                    first)]
-    ;; https://www.programcreek.com/java-api-examples/?code=mauriciotogneri/green-coffee/green-coffee-master/greencoffee/src/main/java/gherkin/pickles/Compiler.java
-
-    (.getUri feature)
-    (.getChildren (.getFeature (.getGherkinFeature feature)))
-    (.getTags (.getFeature (.getGherkinFeature feature)))
-    (.getName (first (.getChildren (.getFeature (.getGherkinFeature feature)))))
-    (.getName (.getFeature (.getGherkinFeature feature)))
-    )
-  (run!)
-
-  (let [f (-> (feature-loader)
-              (.load ["test/features"])
-              first
-              (.getGherkinFeature)
-              (.getFeature)
-              )]
-    f
-    )
-
-  (execute! {:features (-> (load-features ["test/features"])
-                           first
-                           lambdaisland.cucumber.gherkin/gherkin->edn
-                           lambdaisland.cucumber.gherkin/dedupe-feature
-                           second
-                           lambdaisland.cucumber.gherkin/edn->gherkin
-                           vector)
-             :glue ["test/features/step_definitions"]})
-
-
-  )

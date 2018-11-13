@@ -7,7 +7,6 @@
            [io.cucumber.stepexpression ExpressionArgumentMatcher StepExpressionFactory TypeRegistry]
            [java.util Locale]))
 
-
 (defn expression-factory []
   (assert jvm/*type-registry*)
   (StepExpressionFactory. jvm/*type-registry*))
