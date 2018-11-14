@@ -9,12 +9,6 @@ to write "feature" tests in a human readable format known as Gherkin syntax.
 
 This project adds Cucumber support to [Kaocha](https://github.com/lambdaisland/kaocha), allowing to write and Cucumber tests using Clojure.
 
-## State of `kaocha-cucumber`
-
-This project was developed in the first place to power Kaocha's own integration
-tests. It is usable but has not seen a lot of polish or hardening yet. Place
-create GitHub issues if you run into problems or things that need improving.
-
 ## Getting started
 
 This assumes you already have Kaocha setup, including a `tests.edn` and
