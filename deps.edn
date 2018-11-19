@@ -9,7 +9,7 @@
   {:extra-deps {lambdaisland/kaocha {:mvn/version "0.0-266"}}}
 
   :junit-xml
-  {:extra-deps {lambdaisland/kaocha-junit-xml {:mvn/version "0.0-18"}}}
+  {:extra-deps {lambdaisland/kaocha-junit-xml {:mvn/version "0.0-27"}}}
 
   :clojure-1.9
   {:extra-deps
