@@ -11,7 +11,8 @@
             [lambdaisland.cucumber.gherkin :as gherkin]
             [lambdaisland.cucumber.jvm :as jvm]
             [slingshot.slingshot :refer [try+]])
-  (:import cucumber.api.PickleStepTestStep))
+  (:import cucumber.api.PickleStepTestStep
+           gherkin.ParserException))
 
 (defn scenario->testable [feature suite]
   (let [scenario (first (gherkin/scenarios feature))]
@@ -33,21 +34,38 @@
      ::glue-paths (:cucumber/glue-paths suite)
      ::param-types (:cucumber/parameter-types suite)}))
 
+(defn path->id [path]
+  (-> path
+      (str/replace #"/" ".")
+      (str/replace #" " "_")
+      (str/replace #"\.feature$" "")
+      keyword))
+
 (defn feature->testable [feature suite]
   {::testable/type :kaocha.type/cucumber-feature
-   ::testable/id (-> (:uri feature)
-                     (str/replace #"/" ".")
-                     (str/replace #" " "_")
-                     (str/replace #"\.feature$" "")
-                     keyword)
+   ::testable/id (path->id (:uri feature))
    ::testable/desc (or (get-in feature [:document :feature :name]) "<no name>")
    :kaocha.test-plan/tests (map #(scenario->testable % suite) (gherkin/dedupe-feature feature))})
 
 (defmethod testable/-load :kaocha.type/cucumber [testable]
-  (let [{:kaocha/keys [test-paths]} testable]
+  (let [test-paths (:kaocha/test-paths testable)
+        resources  (mapcat jvm/find-features test-paths)
+        tests (map (fn [resource]
+                     (let [path (.getPath resource)]
+                       (try
+                         (-> (jvm/parse-resource resource)
+                             gherkin/gherkin->edn
+                             (feature->testable testable))
+                         (catch Throwable e
+                           (output/warn "Failed loading " path ": " (.getMessage e))
+                           {::testable/type :kaocha.type/cucumber-feature
+                            ::testable/id (path->id path)
+                            ::testable/desc "<no name>"
+                            :kaocha.test-plan/load-error e}))))
+                   resources)]
     (assoc testable
            :kaocha.test-plan/tests
-           (map (comp #(feature->testable % testable) gherkin/gherkin->edn) (jvm/load-features test-paths)))))
+           tests)))
 
 (defmethod testable/-run :kaocha.type/cucumber [testable test-plan]
   (t/do-report {:type :begin-test-suite})
@@ -61,13 +79,21 @@
 
 (defmethod testable/-run :kaocha.type/cucumber-feature [testable test-plan]
   (t/do-report {:type :cucumber/begin-feature})
-  (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
-        testable (-> testable
-                     (dissoc :kaocha.test-plan/tests)
-                     (assoc :kaocha.result/tests results))]
-    (t/do-report {:type :cucumber/end-feature
-                  :kaocha/testable testable})
-    testable))
+  (if-let [load-error (:kaocha.test-plan/load-error testable)]
+    (do
+      (t/do-report {:type                    :error
+                    :message                 "Failed to load Cucumber feature."
+                    :expected                nil
+                    :actual                  load-error
+                    :kaocha.result/exception load-error})
+      (t/do-report {:type :cucumber/end-feature})
+      (assoc testable :kaocha.result/error 1))
+    (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
+          testable (-> testable
+                       (dissoc :kaocha.test-plan/tests)
+                       (assoc :kaocha.result/tests results))]
+      (t/do-report {:type :cucumber/end-feature})
+      testable)))
 
 (defmulti handle-event (fn [_ e] (jvm/event->type e)))
 

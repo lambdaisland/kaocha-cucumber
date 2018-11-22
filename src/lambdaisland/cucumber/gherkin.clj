@@ -1,16 +1,8 @@
 (ns lambdaisland.cucumber.gherkin
   (:require [clojure.java.io :as io]
             [lambdaisland.cucumber.jvm :as jvm])
-  (:import cucumber.runtime.io.FileResource
-           [cucumber.runtime.model CucumberFeature FeatureBuilder]
+  (:import cucumber.runtime.model.CucumberFeature
            [gherkin.ast Background Comment DataTable DocString Examples Feature GherkinDocument Location Scenario ScenarioOutline Step TableCell TableRow Tag]))
-
-(defn parse [path]
-  (let [list (java.util.LinkedList.)
-        builder (FeatureBuilder. list)
-        resource (FileResource/createFileResource (io/file "") (io/file path))]
-    (.parse builder resource)
-    (first list)))
 
 (defn location [node]
   {:type :gherkin/location

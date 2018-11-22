@@ -1,14 +1,17 @@
 (ns lambdaisland.cucumber.jvm
-  (:require [clojure.string :as str])
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str])
   (:import cucumber.api.Result$Type
            cucumber.runner.EventBus
            [cucumber.runtime Backend BackendSupplier CucumberException FeatureSupplier RuntimeOptions]
-           cucumber.runtime.io.FileResourceLoader
-           cucumber.runtime.model.FeatureLoader
+           [cucumber.runtime.io FileResource FileResourceLoader]
+           [cucumber.runtime.model CucumberFeature FeatureLoader]
            [cucumber.runtime.snippets Snippet SnippetGenerator]
+           [gherkin AstBuilder Parser TokenMatcher]
            [io.cucumber.cucumberexpressions Argument Group ParameterType Transformer]
            io.cucumber.stepexpression.TypeRegistry
-           java.util.Locale))
+           java.util.Locale
+           cucumber.runtime.io.Resource))
 
 (def ^:dynamic *glue* nil)
 (def ^:dynamic *state* nil)
@@ -144,13 +147,13 @@
       (^int getThreads []
        (:threads opts (.getThreads default))))))
 
-(defn resource-loader []
+(defn ^FileResourceLoader resource-loader []
   (FileResourceLoader.))
 
-(defn feature-loader []
+(defn ^FeatureLoader feature-loader []
   (FeatureLoader. (resource-loader)))
 
-(defn feature-supplier [features]
+(defn ^FeatureSupplier feature-supplier [features]
   (reify FeatureSupplier (get [this] features)))
 
 (defn event-adaptor [state handler]
@@ -161,8 +164,8 @@
       (swap! state handler e))
     (sendAll [_ es]
       (swap! state #(reduce handler % es)))
-    ^:cloverage/ignore (registerHandlerFor [_ _ _])
-    ^:cloverage/ignore (removeHandlerFor [_ _ _])))
+    (registerHandlerFor [_ _ _])
+    (removeHandlerFor [_ _ _])))
 
 (defn runtime [opts]
   (let [registry (:type-registry opts)
@@ -175,8 +178,18 @@
         (withEventBus (:event-bus opts))
         (build))))
 
-(defn load-features [feature-paths]
-  (.load (feature-loader) feature-paths))
+(defn find-features [path]
+  (.resources (resource-loader) path ".feature"))
+
+(defn parse-resource [^Resource resource]
+  (let [parser               (Parser. (AstBuilder.))
+        token-matcher        (TokenMatcher.)
+        source               (cucumber.util.Encoding/readFile resource)
+        ^GherkinDocument doc (.parse parser source token-matcher)]
+    (CucumberFeature. doc (str (.getPath resource)) source)))
+
+(defn parse [path]
+  (parse-resource (FileResource/createFileResource (io/file "") (io/file path))))
 
 (defn event->type [^cucumber.api.event.Event e]
   (->> e

@@ -243,13 +243,12 @@
     (is (instance? cucumber.runtime.Runtime (jvm/runtime opts)))))
 
 (deftest load-features-test
-  (is (= "Is it Friday yet?")
-      (-> (jvm/load-features ["resources/lambdaisland/gherkin"])
-          first
-          gherkin/gherkin->edn
-          :document
-          :feature
-          :name)))
+  (is (= "Is it Friday yet?"
+         (-> (jvm/parse "resources/lambdaisland/gherkin/test_feature.feature")
+             gherkin/gherkin->edn
+             :document
+             :feature
+             :name))))
 
 (deftest event->type-test
   (is (= :cucumber/test-case-started
@@ -307,7 +306,11 @@
           :cucumber/test-run-finished]
          (let [state (atom [])
                handler (fn [s e] (conj s e))
-               features [(first (mapcat gherkin/dedupe-feature (map gherkin/gherkin->edn (jvm/load-features ["resources/lambdaisland/gherkin"]))))]
+               features [(->> (jvm/find-features "resources/lambdaisland/gherkin")
+                              (map jvm/parse-resource)
+                              (map gherkin/gherkin->edn)
+                              (mapcat gherkin/dedupe-feature)
+                              first)]
                opts {:features (map gherkin/edn->gherkin features)
                      :state state
                      :handler handler}]

@@ -5,9 +5,9 @@ shared_steps: &shared_steps
   - run: mkdir -p ~/downloads
   - restore_cache:
       keys:
-      - kaocha-cucumber-001-{{ .Environment.EXTRA_ALIASES }}-{{ checksum "deps.edn" }}
+      - kaocha-001-{{ .Environment.EXTRA_ALIASES }}-{{ checksum "deps.edn" }}
       # fallback to using the latest cache if no exact match is found
-      - kaocha-cucumber-001-
+      - kaocha-001-
   - run:
       command: |
         cd ~/downloads
@@ -16,16 +16,14 @@ shared_steps: &shared_steps
           chmod +x linux-install-1.9.0.394.sh
         fi
   - run: sudo ~/downloads/linux-install-1.9.0.394.sh
-  - run: sudo apt-get install colordiff
   - run: clojure -A:dev:test:junit-xml${EXTRA_ALIASES} -Spath
   - save_cache:
       paths:
         - ~/.m2
         - ~/downloads
-      key: kaocha-cucumber-001-{{ .Environment.EXTRA_ALIASES }}-{{ checksum "deps.edn" }}
+      key: kaocha-001-{{ .Environment.EXTRA_ALIASES }}-{{ checksum "deps.edn" }}
   - run: mkdir -p test-results/kaocha
-  - run: java -version
-  - run: clojure -e '(println (clojure-version))'
+  - run: clojure -e '(println (System/getProperty "java.runtime.name") (System/getProperty "java.runtime.version") "\nClojure" (clojure-version))'
   - run: clojure -A:dev:test:junit-xml${EXTRA_ALIASES} -m kaocha.runner --reporter documentation --plugin junit-xml --plugin cloverage --codecov --junit-xml-file test-results/kaocha/results.xml
   - run: curl -s https://codecov.io/bash | bash -s - -f target/coverage/codecov.json
   - store_test_results:
