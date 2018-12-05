@@ -1,4 +1,4 @@
-# Unreleased
+# 0.0-25 (2018-12-05 / dc68f6e)
 
 ## Fixed
 
