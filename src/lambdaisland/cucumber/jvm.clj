@@ -81,7 +81,8 @@
 
 (defn load-script [path]
   (try
-    (load-file path)
+    (when (.exists (io/file path))
+      (load-file path))
     (catch Throwable t
       (throw (CucumberException. t)))))
 

@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Don't try to load dangling symlinks, this prevents issues with emacs tmp files
 
 # 0.0-20 (2018-11-23 / bf77871)
 

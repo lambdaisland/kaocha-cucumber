@@ -1,7 +1,7 @@
 (ns lambdaisland.cucumber.jvm-test
   (:require [clojure.test :refer :all]
-            [lambdaisland.cucumber.jvm :as jvm]
-            [lambdaisland.cucumber.gherkin :as gherkin])
+            [lambdaisland.cucumber.gherkin :as gherkin]
+            [lambdaisland.cucumber.jvm :as jvm])
   (:import cucumber.api.event.Event
            cucumber.api.SnippetType
            [cucumber.runtime Backend CucumberException]
@@ -9,6 +9,7 @@
            cucumber.runtime.model.FeatureLoader
            [gherkin.ast Feature Location]
            io.cucumber.stepexpression.TypeRegistry
+           java.io.File
            java.util.Locale))
 
 (deftest camel->kepab-test
@@ -76,8 +77,9 @@
 
 (deftest load-script-test
   (testing "converts load errors into cucumber exceptions"
-    (is (thrown? CucumberException (jvm/load-script "foo/unknown.clj")))))
-
+    (let [tmpfile (File/createTempFile "bad_clojure" "clj")]
+      (spit tmpfile "{:foo}")
+      (is (thrown? CucumberException (jvm/load-script (str tmpfile)))))))
 
 (deftest backend-test
   (let [resource-loader (jvm/resource-loader)
