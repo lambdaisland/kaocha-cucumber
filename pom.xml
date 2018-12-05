@@ -31,6 +31,11 @@
       <version>1.10.0-RC3</version>
     </dependency>
     <dependency>
+      <groupId>lambdaisland</groupId>
+      <artifactId>kaocha</artifactId>
+      <version>0.0-266</version>
+    </dependency>
+    <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
       <version>4.2.0</version>
