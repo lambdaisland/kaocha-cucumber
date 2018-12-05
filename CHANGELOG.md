@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Add Kaocha as a dependency, so that cljdoc can analyze kaocha-cucumber
 
 # 0.0-25 (2018-12-05 / dc68f6e)
 
