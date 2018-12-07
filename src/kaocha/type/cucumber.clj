@@ -2,6 +2,7 @@
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [clojure.test :as t]
+            [kaocha.core-ext :refer :all]
             [kaocha.hierarchy :as hierarchy]
             [kaocha.output :as output]
             [kaocha.report :as report]
@@ -22,14 +23,30 @@
            [(keyword (subs name 1)) true]))
         (:tags gherkin)))
 
+(defn path->id [path test-paths]
+  (let [tp (first (filter #(.startsWith path %) test-paths))]
+    (-> (cond-> path
+          tp
+          (str/replace (regex (str "^" tp "/?")) ""))
+        (str/replace #"/" ".")
+        (str/replace #"_" "-")
+        (str/replace #" " "_")
+        (str/replace #"\.feature$" ""))))
+
+(defn scenario->id [scenario]
+  (if-let [name (:name scenario)]
+    (-> name
+        str/lower-case
+        (str/replace #" " "-")
+        (str/replace #"[^\w-_]" ""))
+    (str "line-" (-> scenario :location :line))))
+
+
 (defn scenario->testable [feature suite]
   (let [scenario (first (gherkin/scenarios feature))]
     {::testable/type :kaocha.type/cucumber-scenario
-     ::testable/id (keyword (-> (:uri feature)
-                                (str/replace #"/" ".")
-                                (str/replace #" " "_")
-                                (str/replace #"\.feature$" ""))
-                            (str "line-" (-> scenario :location :line)))
+     ::testable/id (keyword (path->id (:uri feature) (:kaocha/test-paths suite))
+                            (scenario->id scenario))
      ::testable/meta (gherkin->meta scenario)
      ::testable/desc (str "Scenario: " (or (:name scenario) "<no name>"))
      ::feature feature
@@ -39,17 +56,10 @@
      ::file (:uri feature)
      ::line (-> scenario :location :line)}))
 
-(defn path->id [path]
-  (-> path
-      (str/replace #"/" ".")
-      (str/replace #" " "_")
-      (str/replace #"\.feature$" "")
-      keyword))
-
 (defn feature->testable [document suite]
   (let [feature (-> document :document :feature)]
     {::testable/type :kaocha.type/cucumber-feature
-     ::testable/id (path->id (:uri document))
+     ::testable/id (keyword (path->id (:uri document) (:kaocha/test-paths suite)))
      ::testable/desc (str "Feature: " (or (:name feature) "<no name>"))
      ::testable/meta (gherkin->meta feature)
      :kaocha.test-plan/tests (map #(scenario->testable % suite) (gherkin/dedupe-feature document))}))
