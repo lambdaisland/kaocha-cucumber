@@ -1,10 +1,13 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
+- Ignore dangling symlinks for features (similar to fix in 0.0-25, but that one was for glue)
+
 ## Changed
+
+- In case of failure the output now contains the file name, line, scenario, and
+  step that was currently executing.
 
 # 0.0-28 (2018-12-05 / 39c6c82)
 

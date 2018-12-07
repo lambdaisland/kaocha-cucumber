@@ -180,7 +180,8 @@
         (build))))
 
 (defn find-features [path]
-  (.resources (resource-loader) path ".feature"))
+  (filter #(.exists (io/file (.getPath %)))
+          (.resources (resource-loader) path ".feature")))
 
 (defn parse-resource [^Resource resource]
   (let [parser               (Parser. (AstBuilder.))

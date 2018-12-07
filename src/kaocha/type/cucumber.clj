@@ -106,13 +106,18 @@
 (defmethod handle-event :cucumber/test-case-started [m e]
   (push-thread-bindings {#'t/*testing-contexts*
                          (conj t/*testing-contexts*
-                               (.getScenarioDesignation (.getTestCase e)))})
+                               (->> (str/split (.getScenarioDesignation (.getTestCase e)) #"# ")
+                                    (drop 1)
+                                    (str/join "# ")
+                                    (str "Scenario: ")))})
   m)
 
 (defmethod handle-event :cucumber/test-step-started [m e]
   (let [test-step (.testStep e)]
     (when (instance? PickleStepTestStep test-step)
-      (push-thread-bindings {#'t/*testing-contexts* (conj t/*testing-contexts* (str "\n" (.getStepText test-step)))})))
+      (push-thread-bindings {#'t/*testing-contexts* (conj t/*testing-contexts* (str "\nStep: " (.getStepText test-step)))
+                             #'testable/*test-location* {:file (str/join ":" (butlast (str/split (.getStepLocation test-step) #":")))
+                                                         :line (.getStepLine test-step)}})))
   m)
 
 (defmethod handle-event :cucumber/test-step-finished [m e]
@@ -167,7 +172,6 @@
                  :locale      (::locale testable)
                  :monochrome? (not output/*colored-output*)})
         test  (reduce #(%2 %1) test wrap)]
-    (assert (seq wrap))
     (type/with-report-counters
       (t/do-report {:type :cucumber/begin-scenario})
       (try+
