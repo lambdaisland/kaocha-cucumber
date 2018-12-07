@@ -14,6 +14,14 @@
   (:import cucumber.api.PickleStepTestStep
            gherkin.ParserException))
 
+(defn gherkin->meta [gherkin]
+  (into {:file (:uri gherkin)
+         :line (-> gherkin :location :line)}
+        (map
+         (fn [{:keys [name]}]
+           [(keyword (subs name 1)) true]))
+        (:tags gherkin)))
+
 (defn scenario->testable [feature suite]
   (let [scenario (first (gherkin/scenarios feature))]
     {::testable/type :kaocha.type/cucumber-scenario
@@ -22,17 +30,14 @@
                                 (str/replace #" " "_")
                                 (str/replace #"\.feature$" ""))
                             (str "line-" (-> scenario :location :line)))
-     ::testable/meta (into {:file (:uri feature)
-                            :line (-> scenario :location :line)}
-                           (map
-                            (fn [{:keys [name]}]
-                              [(keyword (subs name 1)) true]))
-                           (:tags scenario))
-     ::testable/desc (or (:name scenario) "<no name>")
+     ::testable/meta (gherkin->meta scenario)
+     ::testable/desc (str "Scenario: " (or (:name scenario) "<no name>"))
      ::feature feature
      ::locale (:cucumber/locale suite)
      ::glue-paths (:cucumber/glue-paths suite)
-     ::param-types (:cucumber/parameter-types suite)}))
+     ::param-types (:cucumber/parameter-types suite)
+     ::file (:uri feature)
+     ::line (-> scenario :location :line)}))
 
 (defn path->id [path]
   (-> path
@@ -41,11 +46,13 @@
       (str/replace #"\.feature$" "")
       keyword))
 
-(defn feature->testable [feature suite]
-  {::testable/type :kaocha.type/cucumber-feature
-   ::testable/id (path->id (:uri feature))
-   ::testable/desc (or (get-in feature [:document :feature :name]) "<no name>")
-   :kaocha.test-plan/tests (map #(scenario->testable % suite) (gherkin/dedupe-feature feature))})
+(defn feature->testable [document suite]
+  (let [feature (-> document :document :feature)]
+    {::testable/type :kaocha.type/cucumber-feature
+     ::testable/id (path->id (:uri document))
+     ::testable/desc (str "Feature: " (or (:name feature) "<no name>"))
+     ::testable/meta (gherkin->meta feature)
+     :kaocha.test-plan/tests (map #(scenario->testable % suite) (gherkin/dedupe-feature document))}))
 
 (defmethod testable/-load :kaocha.type/cucumber [testable]
   (let [test-paths (:kaocha/test-paths testable)
@@ -104,18 +111,12 @@
 (defmethod handle-event :cucumber/test-run-started [m e] m)
 (defmethod handle-event :cucumber/test-source-read [m e] m)
 (defmethod handle-event :cucumber/test-case-started [m e]
-  (push-thread-bindings {#'t/*testing-contexts*
-                         (conj t/*testing-contexts*
-                               (->> (str/split (.getScenarioDesignation (.getTestCase e)) #"# ")
-                                    (drop 1)
-                                    (str/join "# ")
-                                    (str "Scenario: ")))})
   m)
 
 (defmethod handle-event :cucumber/test-step-started [m e]
   (let [test-step (.testStep e)]
     (when (instance? PickleStepTestStep test-step)
-      (push-thread-bindings {#'t/*testing-contexts* (conj t/*testing-contexts* (str "\nStep: " (.getStepText test-step)))
+      (push-thread-bindings {#'t/*testing-contexts* (conj t/*testing-contexts* (.getStepText test-step))
                              #'testable/*test-location* {:file (str/join ":" (butlast (str/split (.getStepLocation test-step) #":")))
                                                          :line (.getStepLine test-step)}})))
   m)
@@ -126,8 +127,9 @@
   m)
 
 (defmethod handle-event :cucumber/test-case-finished [m e]
-  (try
-    (let [{:keys [status error]} (jvm/result->edn (.result e))]
+  (let [{:keys [status error]} (jvm/result->edn (.result e))]
+    (binding [testable/*test-location* {:file (str (.getUri (.testCase e)))
+                                        :line (.getLine (.testCase e))}]
       (case status
         :passed
         (t/do-report {:type :pass})
@@ -142,9 +144,7 @@
         :pending
         (t/do-report {:type :kaocha/pending})
 
-        (prn status)))
-    (finally
-      (pop-thread-bindings)))
+        (prn status))))
   m)
 
 (defmethod handle-event :cucumber/test-run-finished [m e]
@@ -154,8 +154,10 @@
   ;; (t/do-report {:type :cucumber/snippet-suggested
   ;;               :snippets (.snippets e)
   ;;               :locations (.stepLocations e)})
-  (update (merge {::snippets []} m) ::snippets conj {:snippets (.snippets e)
-                                                     :locations (.stepLocations e)}))
+  (update (merge {::snippets []} m)
+          ::snippets
+          conj {:snippets (.snippets e)
+                :locations (.stepLocations e)}))
 
 (defmethod testable/-run :kaocha.type/cucumber-scenario [testable test-plan]
   (let [{::keys          [feature]
@@ -185,7 +187,9 @@
                        :kaocha.result/exception e})))
       (when-let [snippets (::snippets @state)]
         (t/do-report {:type     :cucumber/snippets-suggested
-                      :snippets snippets}))
+                      :snippets snippets
+                      :file (::file testable)
+                      :line (::line testable) }))
       (t/do-report {:type :cucumber/end-scenario})
       (merge testable
              {:kaocha.result/count 1}

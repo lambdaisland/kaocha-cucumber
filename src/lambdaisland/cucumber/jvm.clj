@@ -3,7 +3,7 @@
             [clojure.string :as str])
   (:import cucumber.api.Result$Type
            cucumber.runner.EventBus
-           [cucumber.runtime Backend BackendSupplier CucumberException FeatureSupplier RuntimeOptions]
+           [cucumber.runtime Backend BackendSupplier CucumberException FeatureSupplier Glue RuntimeOptions]
            [cucumber.runtime.io FileResource FileResourceLoader]
            [cucumber.runtime.model CucumberFeature FeatureLoader]
            [cucumber.runtime.snippets Snippet SnippetGenerator]
@@ -67,7 +67,7 @@
                                      regexp ""
                                      prefer-for-regexp-match? false
                                      class 'java.lang.Object}}]
-  #_(require (symbol (namespace transformer)))
+  (require (symbol (namespace transformer)))
   (let [transformer (resolve transformer)
         klass (Class/forName (str class))]
     (.defineParameterType registry
@@ -79,12 +79,44 @@
                                           suggest?
                                           prefer-for-regexp-match?))))
 
-(defn load-script [path]
-  (try
-    (when (.exists (io/file path))
-      (load-file path))
-    (catch Throwable t
-      (throw (CucumberException. t)))))
+(defn glue-collector []
+  (let [glue (atom {})]
+    (reify Glue clojure.lang.IDeref
+      (addStepDefinition [this step]
+        (swap! glue update :steps conj step))
+      (addBeforeHook [this hook]
+        (swap! glue update :before-hooks conj hook))
+      (addAfterHook [this hook]
+        (swap! glue update :after-hooks conj hook))
+      (addBeforeStepHook [this hook]
+        (swap! glue update :before-step-hooks conj hook))
+      (addAfterStepHook [this hook]
+        (swap! glue update :after-step-hooks conj hook))
+
+      (deref [this]
+        @glue))))
+
+(def glue-cache (atom {}))
+
+(defn copy-glue [^Glue to from]
+  (run! #(.addStepDefinition to %) (:steps from))
+  (run! #(.addBeforeHook to %) (:before-hooks from))
+  (run! #(.addAfterHook to %) (:after-hooks from))
+  (run! #(.addBeforeStepHook to %) (:before-step-hooks from))
+  (run! #(.addAfterStepHook to %) (:after-step-hooks from)))
+
+(defn load-glue [path]
+  (if-let [glue (get @glue-cache path)]
+    (copy-glue *glue* glue)
+    (try
+      (let [collector (glue-collector)]
+        (binding [*glue* collector]
+          (when (.exists (io/file path))
+            (load-file path)))
+        (copy-glue *glue* @collector)
+        (swap! glue-cache assoc path @collector))
+      (catch Throwable t
+        (throw (CucumberException. t))))))
 
 (defn backend [resource-loader type-registry]
   (let [clj-snip       (clojure-snippet)
@@ -96,7 +128,7 @@
         (binding [*glue* glue]
           (doseq [path     glue-paths
                   resource (.resources resource-loader path ".clj")]
-            (load-script (.getPath resource)))))
+            (load-glue (.getPath resource)))))
 
       (buildWorld [this]
         (push-thread-bindings {#'*state* (atom {})}))

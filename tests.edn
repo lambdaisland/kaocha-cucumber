@@ -1,19 +1,20 @@
 #kaocha/v1
-{:tests [{:id :unit
-          :type :kaocha.type/clojure.test
-          :source-paths ["src"]
-          :test-paths ["test/unit"]
-          :ns-patterns [".*-test"]
-          :kaocha.filter/skip-meta [:kaocha/skip]
-          }
-         #_{:id :cukes
-            :type :kaocha.type/cucumber
-            :source-paths ["src"]
-            :test-paths ["test/features" "test/support"]
-            :cucumber/glue-paths ["test/features/step_definitions"]
-            :cucumber/parameter-types
-            [#:cucumber.parameter
-             {:name "color"
-              :regexp "red|blue|yellow|green"
-              :class kaocha.cucumber.extra_types.Color
-              :transformer kaocha.cucumber.extra-types/parse-color}]}]}
+{:tests [{:id                      :unit
+          :type                    :kaocha.type/clojure.test
+          :source-paths            ["src"]
+          :test-paths              ["test/unit"]
+          :kaocha.filter/skip-meta [:kaocha/skip] ;; bug, this should be the default
+          :ns-patterns             [".*-test"]}
+
+         {:id                      :integration
+          :type                    :kaocha.type/cucumber
+          :source-paths            ["src"]
+          :test-paths              ["test/features" "test/support"]
+          :kaocha.filter/skip-meta [:kaocha/skip] ;; bug, this should be the default
+          :cucumber/glue-paths     ["test/features/step_definitions"]
+          :cucumber/parameter-types
+          [#:cucumber.parameter
+           {:name        "color"
+            :regexp      "red|blue|yellow|green"
+            :class       kaocha.cucumber.extra_types.Color
+            :transformer kaocha.cucumber.extra-types/parse-color}]}]}

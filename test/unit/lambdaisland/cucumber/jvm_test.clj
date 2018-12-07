@@ -75,11 +75,11 @@
     (is (= {:color "blue"}
            (jvm/parse-type registry "color" "blue")))))
 
-(deftest load-script-test
+(deftest load-glue-test
   (testing "converts load errors into cucumber exceptions"
     (let [tmpfile (File/createTempFile "bad_clojure" "clj")]
       (spit tmpfile "{:foo}")
-      (is (thrown? CucumberException (jvm/load-script (str tmpfile)))))))
+      (is (thrown? CucumberException (jvm/load-glue (str tmpfile)))))))
 
 (deftest backend-test
   (let [resource-loader (jvm/resource-loader)
