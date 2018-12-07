@@ -41,7 +41,6 @@
         (str/replace #"[^\w-_]" ""))
     (str "line-" (-> scenario :location :line))))
 
-
 (defn scenario->testable [feature suite]
   (let [scenario (first (gherkin/scenarios feature))]
     {::testable/type :kaocha.type/cucumber-scenario
@@ -95,22 +94,23 @@
     testable))
 
 (defmethod testable/-run :kaocha.type/cucumber-feature [testable test-plan]
-  (t/do-report {:type :cucumber/begin-feature})
-  (if-let [load-error (:kaocha.test-plan/load-error testable)]
-    (do
-      (t/do-report {:type                    :error
-                    :message                 "Failed to load Cucumber feature."
-                    :expected                nil
-                    :actual                  load-error
-                    :kaocha.result/exception load-error})
-      (t/do-report {:type :cucumber/end-feature})
-      (assoc testable :kaocha.result/error 1))
-    (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
-          testable (-> testable
-                       (dissoc :kaocha.test-plan/tests)
-                       (assoc :kaocha.result/tests results))]
-      (t/do-report {:type :cucumber/end-feature})
-      testable)))
+  (type/with-report-counters
+    (t/do-report {:type :cucumber/begin-feature})
+    (if-let [load-error (:kaocha.test-plan/load-error testable)]
+      (do
+        (t/do-report {:type                    :error
+                      :message                 "Failed to load Cucumber feature."
+                      :expected                nil
+                      :actual                  load-error
+                      :kaocha.result/exception load-error})
+        (t/do-report {:type :cucumber/end-feature})
+        (assoc testable :kaocha.result/error 1))
+      (let [results (testable/run-testables (:kaocha.test-plan/tests testable) test-plan)
+            testable (-> testable
+                         (dissoc :kaocha.test-plan/tests)
+                         (assoc :kaocha.result/tests results))]
+        (t/do-report {:type :cucumber/end-feature})
+        (merge testable {:kaocha.result/count 1} (type/report-count))))))
 
 (defmulti handle-event (fn [_ e] (jvm/event->type e)))
 
@@ -142,12 +142,11 @@
                                         :line (.getLine (.testCase e))}]
       (case status
         :passed
-        (t/do-report {:type :pass})
+        (do)
 
         :failed
-        (do (prn e)
-            (t/do-report {:type :error
-                          :actual error}))
+        (t/do-report {:type :error
+                      :actual error})
         :undefined
         (t/do-report {:type :kaocha/pending})
 

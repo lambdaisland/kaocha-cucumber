@@ -7,6 +7,8 @@
 - Report file/line of pending scenarios because of missing snippets
 - Honor tags on features as metadata
 - Auto-require transformer namespace of custom types
+- Don't emit a `:pass` event after every scenario, it inflates the assertion count
+- Make sure the test result contains result counts, for things like junit-xml
 
 ## Changed
 
@@ -14,6 +16,7 @@
   step that was currently executing.
 - No longer add the scenario as a `*testing-contexts*`, to prevent the docs
   formatter from printing it twice.
+- Give tests nicer ids, based on the filename and scenario description
 
 # 0.0-28 (2018-12-05 / 39c6c82)
 

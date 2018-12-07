@@ -3,6 +3,8 @@
          lambdaisland/kaocha       {:mvn/version "0.0-305"}
          io.cucumber/cucumber-java {:mvn/version "4.2.0"}}
  :aliases
- {:dev {}
+ {:dev
+  {}
+
   :test
   {:extra-deps {akvo/fs {:mvn/version "20180904-152732.6dad3934"}}}}}
