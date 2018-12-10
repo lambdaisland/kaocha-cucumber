@@ -9,7 +9,9 @@ Kaocha support for Cucumber tests.
 [Cucumber](https://cucumber.io) is a "Behavior Driven Development" tool, a way
 to write "feature" tests in a human readable format known as Gherkin syntax.
 
-This project adds Cucumber support to [Kaocha](https://github.com/lambdaisland/kaocha), allowing to write and Cucumber tests using Clojure.
+This project adds Cucumber support to
+[Kaocha](https://github.com/lambdaisland/kaocha), allowing to write and Cucumber
+tests using Clojure.
 
 ## Getting started
 
@@ -31,7 +33,7 @@ Create a directory which will contain your Cucumber tests (`*.feature` files),
 and one which will contain step definitions (`*.clj` files).
 
 ``` shell
-mkdir -p test/features test/feature_steps
+mkdir -p test/features test/step_definitions
 ```
 
 Now add a Cucumber test suite to `tests.edn`
@@ -47,7 +49,7 @@ Now add a Cucumber test suite to `tests.edn`
           :type                :kaocha.type/cucumber
           :source-paths        ["src"]
           :test-paths          ["test/features"]
-          :cucumber/glue-paths ["test/feature_steps"]
+          :cucumber/glue-paths ["test/steps_definitions"]
           :cucumber/locale     "de-DE"  ; optional. Currently only for number
                                         ; format parsing, passed to
                                         ; java.util.Locale/forLanguageTag
