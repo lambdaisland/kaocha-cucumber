@@ -259,6 +259,8 @@
 
 (hierarchy/derive! :cucumber/snippets-suggested :kaocha/deferred)
 
+(hierarchy/derive! :kaocha.type/cucumber :kaocha.testable.type/suite)
+(hierarchy/derive! :kaocha.type/cucumber-feature :kaocha.testable.type/group)
 (hierarchy/derive! :kaocha.type/cucumber-scenario :kaocha.testable.type/leaf)
 
 (comment
