@@ -1,7 +1,7 @@
 {:paths ["src" "resources" "test/support"]
- :deps  {org.clojure/clojure       {:mvn/version "1.10.0-RC3"}
-         lambdaisland/kaocha       {:mvn/version "0.0-313"}
-         io.cucumber/cucumber-java {:mvn/version "4.2.0"}}
+ :deps  {org.clojure/clojure       {:mvn/version "1.10.0"}
+         lambdaisland/kaocha       {:mvn/version "0.0-389"}
+         io.cucumber/cucumber-java {:mvn/version "4.2.2"}}
  :aliases
  {:dev
   {}
