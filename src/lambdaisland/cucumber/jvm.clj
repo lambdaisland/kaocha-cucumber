@@ -1,6 +1,7 @@
 (ns lambdaisland.cucumber.jvm
   (:require [clojure.java.io :as io]
-            [clojure.string :as str])
+            [clojure.string :as str]
+            [lambdaisland.cucumber.jvm.types :as types])
   (:import cucumber.api.Result$Type
            cucumber.runner.EventBus
            [cucumber.runtime Backend BackendSupplier CucumberException FeatureSupplier Glue RuntimeOptions]
@@ -9,9 +10,11 @@
            [cucumber.runtime.snippets Snippet SnippetGenerator]
            [gherkin AstBuilder Parser TokenMatcher]
            [io.cucumber.cucumberexpressions Argument Group ParameterType Transformer]
+           [gherkin.ast GherkinDocument]
            io.cucumber.stepexpression.TypeRegistry
            java.util.Locale
-           cucumber.runtime.io.Resource))
+           cucumber.runtime.io.Resource
+           [java.io FileInputStream]))
 
 (def ^:dynamic *glue* nil)
 (def ^:dynamic *state* nil)
@@ -180,11 +183,8 @@
       (^int getThreads []
        (:threads opts (.getThreads default))))))
 
-(defn ^FileResourceLoader resource-loader []
-  (FileResourceLoader.))
-
 (defn ^FeatureLoader feature-loader []
-  (FeatureLoader. (resource-loader)))
+  (FeatureLoader. (types/file-resource-loader)))
 
 (defn ^FeatureSupplier feature-supplier [features]
   (reify FeatureSupplier (get [this] features)))
@@ -202,7 +202,7 @@
 
 (defn runtime [opts]
   (let [registry (:type-registry opts)
-        loader (resource-loader)]
+        loader (types/file-resource-loader)]
     (run! (partial register-type! registry) (:param-types opts))
     (.. (cucumber.runtime.Runtime/builder)
         (withRuntimeOptions (runtime-options opts))
@@ -213,17 +213,30 @@
 
 (defn find-features [path]
   (filter #(.exists (io/file (.getPath %)))
-          (.resources (resource-loader) path ".feature")))
+          (.resources (types/file-resource-loader) path ".feature")))
+
+(defn doc->pickles [path ^GherkinDocument doc]
+  (map
+   (fn [pickle]
+     (gherkin.events.PickleEvent. path pickle))
+   (.compile (gherkin.pickles.Compiler.) doc)))
 
 (defn parse-resource [^Resource resource]
   (let [parser               (Parser. (AstBuilder.))
         token-matcher        (TokenMatcher.)
         source               (cucumber.util.Encoding/readFile resource)
-        ^GherkinDocument doc (.parse parser source token-matcher)]
-    (CucumberFeature. doc (str (.getPath resource)) source)))
+        ^GherkinDocument doc (.parse parser source token-matcher)
+        path (.getPath resource)]
+    (CucumberFeature. doc (str path) source (doc->pickles path doc))))
 
 (defn parse [path]
-  (parse-resource (FileResource/createFileResource (io/file "") (io/file path))))
+  (let [file (io/file path)]
+    ;; passing the same argument here for "root" and "file" to circumvent a
+    ;; check in the FileResource constructor, which disallows files that aren't
+    ;; under the given root. Since we are assuming files on the filesystem only
+    ;; at this point (and not classpath resources from e.g. jars) this can only
+    ;; serve to get in the way.
+    (parse-resource (types/file-resource file file))))
 
 (defn event->type [^cucumber.api.event.Event e]
   (->> e

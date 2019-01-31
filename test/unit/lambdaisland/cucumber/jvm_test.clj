@@ -1,7 +1,8 @@
 (ns lambdaisland.cucumber.jvm-test
   (:require [clojure.test :refer :all]
             [lambdaisland.cucumber.gherkin :as gherkin]
-            [lambdaisland.cucumber.jvm :as jvm])
+            [lambdaisland.cucumber.jvm :as jvm]
+            [lambdaisland.cucumber.jvm.types :as types])
   (:import cucumber.api.event.Event
            cucumber.api.SnippetType
            [cucumber.runtime Backend CucumberException]
@@ -82,18 +83,19 @@
       (is (thrown? CucumberException (jvm/load-glue (str tmpfile)))))))
 
 (deftest backend-test
-  (let [resource-loader (jvm/resource-loader)
+  (let [resource-loader (types/file-resource-loader)
         type-registry   (jvm/type-registry)]
     (testing "it creates a Backend"
       (is (instance? Backend (jvm/backend resource-loader type-registry))))))
 
 (deftest backend-supplier-test
-  (let [resource-loader  (jvm/resource-loader)
+  (let [resource-loader  (types/file-resource-loader)
         type-registry    (jvm/type-registry)
         backend-supplier (jvm/backend-supplier resource-loader type-registry)]
     (testing "it returns a single backend"
       (is (= 1 (count (.get backend-supplier))))
       (is (instance? Backend (first (.get backend-supplier)))))))
+
 
 (deftest runtime-options-test
   (let [default (jvm/runtime-options {})]
@@ -103,31 +105,8 @@
       (is (true? (.isMultiThreaded (jvm/runtime-options {:threads 4})))))
 
     (testing "getPluginFormatterNames"
-      (is (= ["progress"]
-             (.getPluginFormatterNames default)))
-
-      (is (= ["name"]
-             (.getPluginFormatterNames
-              (jvm/runtime-options
-               {:plugin-formatter-names ["name"]})))))
-
-    (testing "getPluginSummaryPrinterNames"
-      (is (= ["default_summary"]
-             (.getPluginSummaryPrinterNames default)))
-
-      (is (= ["my_summary"]
-             (.getPluginSummaryPrinterNames
-              (jvm/runtime-options
-               {:plugin-summary-printer-names ["my_summary"]})))))
-
-    (testing "getPluginStepDefinitionReporterNames"
-      (is (= []
-             (.getPluginStepDefinitionReporterNames default)))
-
-      (is (= ["a_reporter"]
-             (.getPluginStepDefinitionReporterNames
-              (jvm/runtime-options
-               {:plugin-step-definition-reporter-names ["a_reporter"]})))))
+      (is (= ["progress" "default_summary"]
+             (.getPluginNames default))))
 
     (testing "getGlue"
       (is (= []
@@ -207,9 +186,6 @@
       (is (= 1 (.getThreads default)))
 
       (is (= 4 (.getThreads (jvm/runtime-options {:threads 4})))))))
-
-(deftest resource-loader-test
-  (is (instance? FileResourceLoader (jvm/resource-loader))))
 
 (deftest feature-loader-test
   (is (instance? FeatureLoader (jvm/feature-loader))))

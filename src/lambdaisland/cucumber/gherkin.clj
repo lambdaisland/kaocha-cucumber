@@ -28,7 +28,9 @@
    })
 
 (defmethod edn->gherkin :cucumber/feature [{:keys [uri document source]}]
-  (CucumberFeature. (edn->gherkin document) uri (or source "")))
+  (let [doc (edn->gherkin document)
+        path (.getPath (io/file uri))]
+    (CucumberFeature. doc uri (or source "") (jvm/doc->pickles path doc))))
 
 (defmethod gherkin->edn GherkinDocument [doc]
   {:type     :gherkin/document
@@ -230,6 +232,10 @@
       gherkin->edn
       )
 
+  (->> "resources/lambdaisland/gherkin/test_feature.feature"
+       jvm/parse
+       gherkin->edn
+       )
 
   (with-open [w (io/writer "resources/lambdaisland/gherkin/test_feature.edn")]
     (binding [*out* w]
