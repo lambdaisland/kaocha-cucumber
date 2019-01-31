@@ -1,4 +1,5 @@
 (ns kaocha.type.cucumber
+  (:refer-clojure :exclude [symbol])
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [clojure.test :as t]
