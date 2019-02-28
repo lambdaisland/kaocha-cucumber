@@ -28,17 +28,17 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.10.0-RC3</version>
+      <version>1.10.0</version>
     </dependency>
     <dependency>
       <groupId>lambdaisland</groupId>
       <artifactId>kaocha</artifactId>
-      <version>0.0-313</version>
+      <version>0.0-389</version>
     </dependency>
     <dependency>
       <groupId>io.cucumber</groupId>
       <artifactId>cucumber-java</artifactId>
-      <version>4.2.0</version>
+      <version>4.2.2</version>
     </dependency>
   </dependencies>
   <build>
