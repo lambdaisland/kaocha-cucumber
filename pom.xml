@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>lambdaisland</groupId>
   <artifactId>kaocha-cucumber</artifactId>
-  <version>0.0-36</version>
+  <version>0.0-46</version>
   <name>kaocha</name>
   <description>Cucumber integration for Kaocha</description>
   <url>https://github.com/lambdaisland/kaocha-cucumber</url>
@@ -22,7 +22,7 @@
     <url>https://github.com/lambdaisland/kaocha-cucumber</url>
     <connection>scm:git:git://github.com/lambdaisland/kaocha-cucumber.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/kaocha-cucumber.git</developerConnection>
-    <tag>6f0bc7ca38c6840d9ed9c7586e2ed820f8f728cc</tag>
+    <tag>26daab118f9caba88d9dadf357ff5fe80a22d299</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -56,7 +56,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <Git-Revision>6f0bc7ca38c6840d9ed9c7586e2ed820f8f728cc</Git-Revision>
+              <Git-Revision>26daab118f9caba88d9dadf357ff5fe80a22d299</Git-Revision>
             </manifestEntries>
           </archive>
         </configuration>
