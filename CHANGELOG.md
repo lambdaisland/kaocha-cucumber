@@ -4,6 +4,8 @@
 
 ## Fixed
 
+- Fixed compatiblity with latest cucumber-jvm
+
 ## Changed
 
 # 0.0-36 (2018-12-10 / ddb341a)
