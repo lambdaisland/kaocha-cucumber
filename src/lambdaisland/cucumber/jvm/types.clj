@@ -9,23 +9,23 @@
 (defn file-resource ^Resource [^File root ^File file]
   (reify
     Resource
-    (getPath ^String [this]
+    (getPath ^String [_]
       (.getPath file))
-    (getInputStream ^InputStream [this]
+    (getInputStream ^InputStream [_]
       (FileInputStream. file))
 
     Object
-    (toString [this]
+    (toString [_]
       (str "<file-resource: @root=" root ", @file=" file ">"))))
 
 (defn file-resource-seq ^Iterator [root suffix]
   (->> (io/file root)
        file-seq
-       (filter (fn [f]
+       (filter (fn [^File f]
                  (and (.isFile f) (str/ends-with? (str f) suffix))))
        (map #(file-resource root %))))
 
 (defn file-resource-loader ^ResourceLoader []
   (reify ResourceLoader
-    (^Iterable resources [this ^String path ^String suffix]
+    (^Iterable resources [_ ^String path ^String suffix]
      (file-resource-seq path suffix))))

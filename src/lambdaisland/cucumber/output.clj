@@ -33,7 +33,7 @@
 (defmethod print-markdown :gherkin/document [{:keys [feature]}]
   (print-markdown feature))
 
-(defmethod print-markdown :gherkin/feature [{:keys [keyword name description children]}]
+(defmethod print-markdown :gherkin/feature [{:keys [name description children]}]
   (println "#" name)
   (println)
   (when (seq description)
@@ -45,8 +45,8 @@
   (println "##" (str keyword ":") name)
   (println)
   (run! print-markdown steps)
-  (println)
-  )
+  (println))
+
 
 (defmethod print-markdown :gherkin/scenario [{:keys [name steps]}]
   (println "##" name)
@@ -85,7 +85,7 @@
                  io/file
                  file-seq
                  (map str)
-                 (filter #(.endsWith % ".feature")))]
+                 (filter #(str/ends-with? % ".feature")))]
     (with-open [out (-> f
                         (str/replace "test/features" "doc")
                         (str/replace ".feature" ".md")
@@ -95,18 +95,18 @@
         (->> f
              jvm/parse
              gherkin/gherkin->edn
-             print-markdown)))
-    )
+             print-markdown))))
+
 
   (->> "resources/lambdaisland/gherkin/test_feature.feature"
        jvm/parse
-       gherkin/gherkin->edn
-       )
+       gherkin/gherkin->edn)
+
 
   (spit "resources/lambdaisland/gherkin/test_feature.md"
         (with-out-str
           (->> "resources/lambdaisland/gherkin/test_feature.feature"
                jvm/parse
                gherkin/gherkin->edn
-               print-markdown)))
-  )
+               print-markdown))))
+
