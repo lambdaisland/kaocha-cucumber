@@ -23,5 +23,5 @@
 
 (Given "a {color} ball" [state color]
   (prn (.hex color))
-  state
-  )
+  state)
+

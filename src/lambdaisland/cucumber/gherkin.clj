@@ -1,10 +1,10 @@
 (ns lambdaisland.cucumber.gherkin
   (:require [clojure.java.io :as io]
             [lambdaisland.cucumber.jvm :as jvm])
-  (:import cucumber.runtime.model.CucumberFeature
-           [gherkin.ast Background Comment DataTable DocString Examples Feature GherkinDocument Location Scenario ScenarioOutline Step TableCell TableRow Tag]))
+  (:import [cucumber.runtime.model CucumberFeature]
+           [gherkin.ast Background Comment DataTable DocString Examples Feature GherkinDocument Location Node Scenario ScenarioOutline Step TableCell TableRow Tag]))
 
-(defn location [node]
+(defn location [^Node node]
   {:type :gherkin/location
    :line (some-> node
                  .getLocation
@@ -19,20 +19,18 @@
 (defmethod gherkin->edn :default [o] o)
 (defmethod edn->gherkin :default [o] o)
 
-(defmethod gherkin->edn CucumberFeature [feat]
+(defmethod gherkin->edn CucumberFeature [^CucumberFeature feat]
   {:type     :cucumber/feature
    :uri      (.getUri feat)
    :document (gherkin->edn (.getGherkinFeature feat))
-   :source   (slurp (.getUri feat))
-   ;; source is private without a getter :(
-   })
+   :source   (slurp (.getUri feat))}) ; source is private without a getter :(
 
 (defmethod edn->gherkin :cucumber/feature [{:keys [uri document source]}]
   (let [doc (edn->gherkin document)
         path (.getPath (io/file uri))]
     (CucumberFeature. doc uri (or source "") (jvm/doc->pickles path doc))))
 
-(defmethod gherkin->edn GherkinDocument [doc]
+(defmethod gherkin->edn GherkinDocument [^GherkinDocument doc]
   {:type     :gherkin/document
    :feature  (gherkin->edn (.getFeature doc))
    :comments (mapv gherkin->edn (.getComments doc))})
@@ -40,7 +38,7 @@
 (defmethod edn->gherkin :gherkin/document [{:keys [feature comments]}]
   (GherkinDocument. (edn->gherkin feature) (map edn->gherkin comments)))
 
-(defmethod gherkin->edn Feature [feat]
+(defmethod gherkin->edn Feature [^Feature feat]
   {:type        :gherkin/feature
    :location    (location feat)
    :tags        (mapv gherkin->edn (.getTags feat))
@@ -62,7 +60,7 @@
 (defmethod edn->gherkin :gherkin/location [{:keys [line column]}]
   (Location. line column))
 
-(defmethod gherkin->edn Comment [comm]
+(defmethod gherkin->edn Comment [^Comment comm]
   {:type        :gherkin/comment
    :location    (location comm)
    :text        (.getText comm)})
@@ -70,7 +68,7 @@
 (defmethod edn->gherkin :gherkin/comment [{:keys [location text]}]
   (Comment. (edn->gherkin location) text))
 
-(defmethod gherkin->edn Background [scen]
+(defmethod gherkin->edn Background [^Background scen]
   {:type        :gherkin/background
    :location    (location scen)
    :keyword     (.getKeyword scen)
@@ -85,7 +83,7 @@
                description
                (map edn->gherkin steps)))
 
-(defmethod gherkin->edn Scenario [scen]
+(defmethod gherkin->edn Scenario [^Scenario scen]
   {:type        :gherkin/scenario
    :location    (location scen)
    :keyword     (.getKeyword scen)
@@ -102,7 +100,7 @@
              description
              (map edn->gherkin steps)))
 
-(defmethod gherkin->edn ScenarioOutline [scen]
+(defmethod gherkin->edn ScenarioOutline [^ScenarioOutline scen]
   {:type        :gherkin/scenario-outline
    :location    (location scen)
    :keyword     (.getKeyword scen)
@@ -121,7 +119,7 @@
                     (map edn->gherkin steps)
                     (map edn->gherkin examples)))
 
-(defmethod gherkin->edn Examples [ex]
+(defmethod gherkin->edn Examples [^Examples ex]
   {:type        :gherkin/examples
    :location    (location ex)
    :tags        (mapv gherkin->edn (.getTags ex))
@@ -140,7 +138,7 @@
              (edn->gherkin table-header)
              (map edn->gherkin table-body)))
 
-(defmethod gherkin->edn Step [step]
+(defmethod gherkin->edn Step [^Step step]
   {:type     :gherkin/step
    :location (location step)
    :keyword  (.getKeyword step)
@@ -153,14 +151,14 @@
          text
          (edn->gherkin argument)))
 
-(defmethod gherkin->edn DataTable [table]
+(defmethod gherkin->edn DataTable [^DataTable table]
   {:type :gherkin/data-table
    :rows (mapv gherkin->edn (.getRows table))})
 
 (defmethod edn->gherkin :gherkin/data-table [table]
   (DataTable. (map edn->gherkin (:rows table))))
 
-(defmethod gherkin->edn TableRow [row]
+(defmethod gherkin->edn TableRow [^TableRow row]
   (with-meta
     (mapv gherkin->edn (.getCells row))
     {:type :gherkin/table-row
@@ -180,12 +178,12 @@
     (subSequence [s e] (.subSequence string s e))
     (toString [] string)))
 
-(defmethod gherkin->edn TableCell [cell]
+(defmethod gherkin->edn TableCell [^TableCell cell]
   #_{:type :gherkin/table-cell
      :location (location cell)}
   (.getValue cell))
 
-(defmethod gherkin->edn DocString [s]
+(defmethod gherkin->edn DocString [^DocString s]
   {:type         :gherkin/doc-string
    :location     (location s)
    :content      (.getContent s)
@@ -194,7 +192,7 @@
 (defmethod edn->gherkin :gherkin/doc-string [{:keys [location content content-type]}]
   (DocString. (edn->gherkin location) content-type content))
 
-(defmethod gherkin->edn Tag [t]
+(defmethod gherkin->edn Tag [^Tag t]
   {:type     :gherkin/tag
    :location (location t)
    :name     (.getName t)})
@@ -222,26 +220,22 @@
        gherkin->edn
        scenarios
        last
-       :tags
-       )
+       :tags)
+
 
   (-> (jvm/feature-loader)
       (.load ["test/features"])
       first
       (.getGherkinFeature)
-      gherkin->edn
-      )
+      gherkin->edn)
+
 
   (->> "resources/lambdaisland/gherkin/test_feature.feature"
        jvm/parse
-       gherkin->edn
-       )
+       gherkin->edn)
+
 
   (with-open [w (io/writer "resources/lambdaisland/gherkin/test_feature.edn")]
     (binding [*out* w]
       (clojure.pprint/pprint
-       (gherkin->edn (parse "resources/lambdaisland/gherkin/test_feature.feature"))
-       )))
-
-
-  )
+       (gherkin->edn (parse "resources/lambdaisland/gherkin/test_feature.feature"))))))

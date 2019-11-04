@@ -15,10 +15,10 @@
 
 (deftest camel->kepab-test
   (is (= "foo-bar-baz"
-         (jvm/camel->kebap "FooBarBaz")))
+         (jvm/camel->kebab "FooBarBaz")))
 
   (is (= "foo-bar"
-         (jvm/camel->kebap "fooBar"))))
+         (jvm/camel->kebab "fooBar"))))
 
 (deftest clojure-snippet-test
   (testing "template"
@@ -297,5 +297,5 @@
 
 (comment
   (require 'kaocha.repl)
-  (kaocha.repl/run 'lambdaisland.cucumber.jvm-test)
-  )
+  (kaocha.repl/run 'lambdaisland.cucumber.jvm-test))
+

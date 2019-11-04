@@ -1,20 +1,22 @@
 (ns kaocha.type.cucumber
   (:refer-clojure :exclude [symbol])
-  (:require [clojure.spec.alpha :as s]
+  (:require [clojure.pprint :refer [pprint]]
+            [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [clojure.test :as t]
             [kaocha.core-ext :refer :all]
             [kaocha.hierarchy :as hierarchy]
             [kaocha.output :as output]
             [kaocha.report :as report]
-            [kaocha.result :as result]
             [kaocha.testable :as testable]
             [kaocha.type :as type]
             [lambdaisland.cucumber.gherkin :as gherkin]
             [lambdaisland.cucumber.jvm :as jvm]
             [slingshot.slingshot :refer [try+]])
-  (:import cucumber.api.PickleStepTestStep
-           gherkin.ParserException))
+  (:import [cucumber.api PickleStepTestStep]
+           [cucumber.api.event TestCaseFinished TestStepFinished TestStepStarted SnippetsSuggestedEvent]
+           [cucumber.runtime.io Resource]
+           [gherkin.pickles PickleLocation]))
 
 (defn gherkin->meta [gherkin]
   (into {:file (:uri gherkin)
@@ -25,7 +27,7 @@
         (:tags gherkin)))
 
 (defn path->id [path test-paths]
-  (let [tp (first (filter #(.startsWith path %) test-paths))]
+  (let [tp (first (filter #(str/starts-with? path %) test-paths))]
     (-> (cond-> path
           tp
           (str/replace (regex (str "^" tp "/?")) ""))
@@ -67,7 +69,7 @@
 (defmethod testable/-load :kaocha.type/cucumber [testable]
   (let [test-paths (:kaocha/test-paths testable)
         resources  (mapcat jvm/find-features test-paths)
-        tests (map (fn [resource]
+        tests (map (fn [^Resource resource]
                      (let [path (.getPath resource)]
                        (try
                          (-> (jvm/parse-resource resource)
@@ -76,7 +78,7 @@
                          (catch Throwable e
                            (output/warn "Failed loading " path ": " (.getMessage e))
                            {::testable/type :kaocha.type/cucumber-feature
-                            ::testable/id (path->id path)
+                            ::testable/id (path->id path test-paths)
                             ::testable/desc "<no name>"
                             :kaocha.test-plan/load-error e}))))
                    resources)]
@@ -115,32 +117,31 @@
 
 (defmulti handle-event (fn [_ e] (jvm/event->type e)))
 
-(defmethod handle-event :default [m e]
+(defmethod handle-event :default [m _]
   (println "UNHANDLED CUCUMBER EVENT")
-  (clojure.pprint/pprint m))
+  (pprint m))
 
-(defmethod handle-event :cucumber/test-run-started [m e] m)
-(defmethod handle-event :cucumber/test-source-read [m e] m)
-(defmethod handle-event :cucumber/test-case-started [m e]
-  m)
+(defmethod handle-event :cucumber/test-run-started [m _] m)
+(defmethod handle-event :cucumber/test-source-read [m _] m)
+(defmethod handle-event :cucumber/test-case-started [m _] m)
 
-(defmethod handle-event :cucumber/test-step-started [m e]
+(defmethod handle-event :cucumber/test-step-started [m ^TestStepStarted e]
   (let [test-step (.testStep e)]
     (when (instance? PickleStepTestStep test-step)
-      (push-thread-bindings {#'t/*testing-contexts* (conj t/*testing-contexts* (.getStepText test-step))
-                             #'testable/*test-location* {:file (str/join ":" (butlast (str/split (.getStepLocation test-step) #":")))
-                                                         :line (.getStepLine test-step)}})))
+      (push-thread-bindings {#'t/*testing-contexts* (conj t/*testing-contexts* (.getStepText ^PickleStepTestStep test-step))
+                             #'testable/*test-location* {:file (str/join ":" (butlast (str/split (.getStepLocation ^PickleStepTestStep test-step) #":")))
+                                                         :line (.getStepLine ^PickleStepTestStep test-step)}})))
   m)
 
-(defmethod handle-event :cucumber/test-step-finished [m e]
-  (when (instance? PickleStepTestStep (.testStep e))
+(defmethod handle-event :cucumber/test-step-finished [m ^TestStepFinished e]
+  (when (instance? PickleStepTestStep (.-testStep e))
     (pop-thread-bindings))
   m)
 
-(defmethod handle-event :cucumber/test-case-finished [m e]
-  (let [{:keys [status error]} (jvm/result->edn (.result e))]
-    (binding [testable/*test-location* {:file (str (.getUri (.testCase e)))
-                                        :line (.getLine (.testCase e))}]
+(defmethod handle-event :cucumber/test-case-finished [m ^TestCaseFinished e]
+  (let [{:keys [status error]} (jvm/result->edn (.-result e))]
+    (binding [testable/*test-location* {:file (str (.getUri (.-testCase e)))
+                                        :line (.getLine (.-testCase e))}]
       (case status
         :passed
         (do)
@@ -157,38 +158,38 @@
         (prn status))))
   m)
 
-(defmethod handle-event :cucumber/test-run-finished [m e]
+(defmethod handle-event :cucumber/test-run-finished [m _]
   (update m :done deliver :ok))
 
-(defmethod handle-event :cucumber/snippets-suggested-event [m e]
+(defmethod handle-event :cucumber/snippets-suggested-event [m ^SnippetsSuggestedEvent e]
   ;; (t/do-report {:type :cucumber/snippet-suggested
-  ;;               :snippets (.snippets e)
-  ;;               :locations (.stepLocations e)})
+  ;;               :snippets (.-snippets e)
+  ;;               :locations (.-stepLocations e)})
   (update (merge {::snippets []} m)
           ::snippets
-          conj {:snippets (.snippets e)
-                :locations (.stepLocations e)}))
+          conj {:snippets (.-snippets e)
+                :locations (.-stepLocations e)}))
 
-(defmethod testable/-run :kaocha.type/cucumber-scenario [testable test-plan]
+(defmethod testable/-run :kaocha.type/cucumber-scenario [testable _]
   (let [{::keys          [feature]
          ::testable/keys [wrap]} testable
 
-        done  (promise)
-        state (atom {:done done})
-        test  #(jvm/execute!
-                {:features    [(gherkin/edn->gherkin feature)]
-                 :glue        (::glue-paths testable)
-                 :state       state
-                 :handler     handle-event
-                 :param-types (::param-types testable)
-                 :locale      (::locale testable)
-                 :monochrome? (not output/*colored-output*)})
-        test  (reduce #(%2 %1) test wrap)]
+        done      (promise)
+        state     (atom {:done done})
+        test!     #(jvm/execute!
+                     {:features    [(gherkin/edn->gherkin feature)]
+                      :glue        (::glue-paths testable)
+                      :state       state
+                      :handler     handle-event
+                      :param-types (::param-types testable)
+                      :locale      (::locale testable)
+                      :monochrome? (not output/*colored-output*)})
+        test-all! (reduce #(%2 %1) test! wrap)]
     (type/with-report-counters
       (t/do-report {:type :cucumber/begin-scenario})
       (try+
-       (test)
-       (catch :kaocha/fail-fast e)
+       (test-all!)
+       (catch :kaocha/fail-fast _)
        (catch Throwable e
          (t/do-report {:type                    :error
                        :message                 "Uncaught exception, not in assertion."
@@ -199,7 +200,7 @@
         (t/do-report {:type     :cucumber/snippets-suggested
                       :snippets snippets
                       :file (::file testable)
-                      :line (::line testable) }))
+                      :line (::line testable)}))
       (t/do-report {:type :cucumber/end-scenario})
       (merge testable
              {:kaocha.result/count 1}
@@ -220,7 +221,7 @@
               snippet  (:snippets snipcol)
               location (:locations snipcol)
               step     steps
-              :let     [line (.getLine location)]]
+              :let     [line (.getLine ^PickleLocation location)]]
         (when (= line (-> step :location :line))
           (println (str/replace snippet "**KEYWORD** " (:keyword step))))))))
 
@@ -272,6 +273,6 @@
                                    :kaocha/test-paths ["test/features"]
                                    :cucumber/glue-paths ["test/features/step_definitions"]}]})
 
-  (kaocha.repl/run-all)
+  (kaocha.repl/run-all))
 
-  )
+

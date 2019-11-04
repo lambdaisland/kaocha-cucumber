@@ -1,13 +1,13 @@
 (ns lambdaisland.cucumber.dsl
-  (:require [clojure.string :as str]
-            [lambdaisland.cucumber.jvm :as jvm])
-  (:import [cucumber.runtime  HookDefinition StepDefinition]
+  (:require [lambdaisland.cucumber.jvm :as jvm])
+  (:import [cucumber.api PendingException]
+           [cucumber.runtime HookDefinition StepDefinition]
            [cucumber.runtime.filter TagPredicate]
-           [cucumber.runtime.snippets Snippet SnippetGenerator]
-           [io.cucumber.stepexpression ExpressionArgumentMatcher StepExpressionFactory TypeRegistry]
-           [java.util Locale]))
+           [io.cucumber.stepexpression ExpressionArgumentMatcher StepExpressionFactory]
+           [io.cucumber.datatable DataTable]
+           [java.lang.reflect Method]))
 
-(defn expression-factory []
+(defn expression-factory ^StepExpressionFactory []
   (assert jvm/*type-registry*)
   (StepExpressionFactory. jvm/*type-registry*))
 
@@ -25,7 +25,7 @@
                step-expression    (.createExpression expression-factory pattern)
                argument-matcher   (ExpressionArgumentMatcher. step-expression)]
            (.argumentsFrom argument-matcher step (into-array Class (repeat argc Object)))))
-       (getLocation [_ detail]
+       (getLocation [_ _]
          (location-str location))
        (getParameterCount [_]
          nil)
@@ -49,11 +49,11 @@
       (.addBeforeHook glue
                       (reify
                         HookDefinition
-                        (getLocation [_ detail?]
+                        (getLocation [_ _]
                           (location-str location))
-                        (execute [hd scenario-result]
+                        (execute [_ _]
                           (hook-fun))
-                        (matches [hd tags]
+                        (matches [_ tags]
                           (.apply tp tags))
                         (getOrder [_] 0)
                         (isScenarioScoped [_]
@@ -63,28 +63,28 @@
   (when-let [glue jvm/*glue*]
     (let [tp (TagPredicate. tag-expression)
           max-parameter-count (->> hook-fun class .getDeclaredMethods
-                                   (filter #(= "invoke" (.getName %)))
-                                   (map #(count (.getParameterTypes %)))
+                                   (filter #(= "invoke" (.getName ^Method %)))
+                                   (map #(count (.getParameterTypes ^Method %)))
                                    (apply max))]
       (.addAfterHook glue
                      (reify
                        HookDefinition
-                       (getLocation [_ detail?]
+                       (getLocation [_ _]
                          (location-str location))
-                       (execute [hd scenario-result]
+                       (execute [_ scenario-result]
                          (if (zero? max-parameter-count)
                            (hook-fun)
                            (hook-fun scenario-result)))
-                       (matches [hd tags]
+                       (matches [_ tags]
                          (.apply tp tags))
-                       (getOrder [hd] 0)
-                       (isScenarioScoped [hd] false))))))
+                       (getOrder [_] 0)
+                       (isScenarioScoped [_] false))))))
 
 (defmulti coerce-arg type)
 
 (defmethod coerce-arg :default [x] x)
 
-(defmethod coerce-arg io.cucumber.datatable.DataTable [table]
+(defmethod coerce-arg DataTable [^DataTable table]
   (into [] (map (partial into [])) (.cells table)))
 
 (defmacro step-macros [& names]
@@ -103,8 +103,8 @@
                                                           :actual ~'result#})))
                                        ~'result#))
                                    '~{:file *file*
-                                      :line (:line (meta ~'&form))
-                                      })))))
+                                      :line (:line (meta ~'&form))})))))
+
 (step-macros
  Given When Then And But)
 
@@ -119,4 +119,4 @@
   `(add-hook-definition :after ~tags (fn [] ~@body) ~(hook-location *file* &form)))
 
 (defn pending! []
-  (throw (cucumber.api.PendingException.)))
+  (throw (PendingException.)))
