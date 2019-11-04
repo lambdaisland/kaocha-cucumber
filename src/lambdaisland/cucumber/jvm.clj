@@ -19,6 +19,8 @@
            [java.util Locale]
            [java.util List Map]))
 
+(set! *warn-on-reflection* true)
+
 (def ^:dynamic ^Glue *glue* nil)
 (def ^:dynamic *state* nil)
 (def ^:dynamic ^TypeRegistry *type-registry* nil)
@@ -153,8 +155,9 @@
       [(backend resource-loader type-registry)])))
 
 (defn runtime-options [opts]
-  (let [default (RuntimeOptions. (List/of))]
-    (proxy [RuntimeOptions] [(List/of)]
+  (let [^List empty-list (clojure.lang.PersistentList/EMPTY)
+        default (RuntimeOptions. empty-list)]
+    (proxy [RuntimeOptions] [empty-list]
       (^boolean isMultiThreaded []
        (> (.getThreads ^RuntimeOptions this) 1))
       (^List getGlue []
