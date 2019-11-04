@@ -212,8 +212,8 @@ that's compatible with old tests.
 
 <!-- license-epl -->
 ## License
-
-Copyright &copy; 2018 Arne Brasseur
-
+&nbsp;
+Copyright &copy; 2018-2019 Arne Brasseur
+&nbsp;
 Available under the terms of the Eclipse Public License 1.0, see LICENSE.txt
 <!-- /license-epl -->

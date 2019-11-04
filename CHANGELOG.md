@@ -1,10 +1,8 @@
 # Unreleased
 
-## Added
-
 ## Fixed
 
-## Changed
+- Fixed reflection warnings
 
 # 0.0-46 (2019-02-28 / a6dccb4)
 
