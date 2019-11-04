@@ -4,6 +4,10 @@
 
 - Fixed reflection warnings
 
+## Changed
+
+- Updated Clojure and Kaocha to latest versions
+
 # 0.0-46 (2019-02-28 / a6dccb4)
 
 ## Added
