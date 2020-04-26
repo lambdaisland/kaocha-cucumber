@@ -104,7 +104,7 @@ You can implement missing steps with the snippets below:
 1 tests, 0 assertions, 1 pending, 0 failures.
 ```
 
-Create a file `test/feature_steps/coffeeshop_steps.clj`, copy the sample code
+Create a file `test/step_definitions/coffeeshop_steps.clj`, copy the sample code
 snippets over, and add a namespace declaration, pulling in
 `lambdaisland.cucumber.dsl` and `clojure.test`.
 
@@ -157,6 +157,22 @@ Any remaining arguments correspond with capturing groups or "output parameters"
 in the pattern.
 
 Inside the step definitions you use `clojure.test` style assertions.
+
+Here's the complete file structure of this example:
+
+```
+.
+├── bin
+│   └── kaocha
+├── deps.edn
+├── test
+│   ├── features
+│   │   └── coffeeshop.feature
+│   └── step_definitions
+│       └── coffeeshop_steps.clj
+└── tests.edn
+```
+
 
 ## Parameter Types
 
