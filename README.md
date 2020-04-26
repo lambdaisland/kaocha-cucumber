@@ -158,6 +158,22 @@ in the pattern.
 
 Inside the step definitions you use `clojure.test` style assertions.
 
+Here's the complete file structure of this example:
+
+```
+.
+├── bin
+│   └── kaocha
+├── deps.edn
+├── test
+│   ├── features
+│   │   └── coffeeshop.feature
+│   └── step_definitions
+│       └── coffeeshop_steps.clj
+└── tests.edn
+```
+
+
 ## Parameter Types
 
 Data tables will be converted to a vector of vectors, other types will be passed
