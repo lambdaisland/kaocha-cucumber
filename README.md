@@ -33,7 +33,7 @@ Create a directory which will contain your Cucumber tests (`*.feature` files),
 and one which will contain step definitions (`*.clj` files).
 
 ``` shell
-mkdir -p test/features test/step_definitions
+mkdir -p test/features test/steps_definitions
 ```
 
 Now add a Cucumber test suite to `tests.edn`
