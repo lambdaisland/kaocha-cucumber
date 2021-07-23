@@ -249,7 +249,7 @@ You can find an overview of our projects at [lambdaisland/open-source](https://g
 <!-- contributing -->
 ## Contributing
 
-Everyone has a right to submit patches to glogi, and thus become a contributor.
+Everyone has a right to submit patches to kaocha-cucumber, and thus become a contributor.
 
 Contributors MUST
 
