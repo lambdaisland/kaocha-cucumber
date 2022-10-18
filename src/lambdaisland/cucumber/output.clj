@@ -34,10 +34,13 @@
   (print-markdown feature))
 
 (defmethod print-markdown :gherkin/feature [{:keys [name description children]}]
+  (println "<!-- This document is generated based on a corresponding .feature file, do not edit directly -->")
+  (println)
   (println "#" name)
   (println)
   (when (seq description)
-    (println (str/trim description)))
+    (println (str/replace (str/join "\n" (map str/trim (str/split description #"\n")))
+                          #"^\\" "")))
   (println)
   (run! print-markdown children))
 
@@ -109,4 +112,3 @@
                jvm/parse
                gherkin/gherkin->edn
                print-markdown))))
-
