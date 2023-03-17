@@ -172,7 +172,55 @@ Here's the complete file structure of this example:
 │       └── coffeeshop_steps.clj
 └── tests.edn
 ```
+## Running through REPL
 
+When running through REPL, we need to disable the glue-cache. Otherwise, after 
+we change the **steps_definitions**, we will still run the old steps.
+
+The disable command is `(reset! lambdaisland.cucumber.jvm/glue-cache nil)`
+
+Example:
+
+```
+Clojure 1.10.3
+OpenJDK 64-Bit Server VM 17.0.6+10-LTS
+Interrupt: Control+C
+Exit:      Control+D or (exit) or (quit)
+user=> (require '[lambdaisland.cucumber.jvm])
+nil
+user=> (require '[kaocha.repl :as k])
+nil
+;; First time to run
+user=> (k/run :features)
+
+PENDING in coffeeshop/getting-change (test/features/coffeeshop.feature:10)
+You can implement missing steps with the snippets below:
+(Then "I get ${double} back" [state double1]
+  ;; Write code here that turns the phrase above into concrete actions
+  (pending!))
+
+1 tests, 2 assertions, 1 pending, 0 failures.
+
+PENDING coffeeshop/getting-change (test/features/coffeeshop.feature:10)
+#:kaocha.result{:count 1, :pass 2, :error 0, :fail 0, :pending 1}
+
+;; Now, we change the steps_definitions
+;; We need to disable the glue-cacahe before re-run
+user=> (reset! lambdaisland.cucumber.jvm/glue-cache nil)
+nil
+user=> (k/run :features)
+]
+Randomized with --seed 279015433
+
+FAIL in coffeeshop/getting-change (test/features/coffeeshop.feature:13)
+I get $1.00 back
+Expected:
+  100.0
+Actual:
+  -100.0 +496.0
+1 tests, 3 assertions, 1 failures.
+#:kaocha.result{:count 1, :pass 2, :error 0, :fail 1, :pending 0}
+```
 
 ## Parameter Types
 
