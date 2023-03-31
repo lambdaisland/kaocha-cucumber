@@ -174,7 +174,7 @@ Here's the complete file structure of this example:
 ```
 ## Running through a REPL
 
-When running through REPL, we need to disable the glue-cache. Otherwise, after 
+When running through a REPL, we need to disable the glue-cache. Otherwise, after 
 we change the **steps_definitions**, we will still run the old steps.
 
 The disable command is `(reset! lambdaisland.cucumber.jvm/glue-cache nil)`
