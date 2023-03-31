@@ -172,7 +172,7 @@ Here's the complete file structure of this example:
 │       └── coffeeshop_steps.clj
 └── tests.edn
 ```
-## Running through REPL
+## Running through a REPL
 
 When running through REPL, we need to disable the glue-cache. Otherwise, after 
 we change the **steps_definitions**, we will still run the old steps.
