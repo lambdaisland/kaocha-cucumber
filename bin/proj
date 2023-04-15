@@ -3,7 +3,7 @@
 (ns proj (:require [lioss.main :as lioss]))
 
 (lioss/main
- {:license        :mpl
+ {:license        :epl
   :inception-year 2018
   :description    "Cucumber support for Kaocha"
   :old-group-id   "lambdaisland"
