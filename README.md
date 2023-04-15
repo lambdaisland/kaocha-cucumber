@@ -221,6 +221,34 @@ Actual:
 1 tests, 3 assertions, 1 failures.
 #:kaocha.result{:count 1, :pass 2, :error 0, :fail 1, :pending 0}
 ```
+## Tags
+
+Following standard [Gherkin
+syntax](https://cucumber.io/docs/cucumber/api/?lang=java#tags), you may add tags
+by prefixing them with `@`. For example, you could add a `@customer-facing` tag
+to the previous `test/features/coffeeshop.feature`.
+
+This would tag the whole feature with `@customer-facing`:
+
+
+``` feature
+@customer-facing
+Feature: Coffee shop order fulfilment
+```
+
+This would tag a scenario with `@customer-facing`:
+
+```
+@customer-facing
+  Scenario: Getting change
+```
+
+Then, you can use `--focus-meta` or `--skip-meta` in order to select only tagged
+tests or skip them respectively:
+
+```
+bin/kaocha --focus-meta customer-facing
+```
 
 ## Parameter Types
 
