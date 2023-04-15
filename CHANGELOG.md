@@ -1,10 +1,8 @@
 # Unreleased
 
 ## Added
-
-## Fixed
-
-## Changed
+* Added documentation for working with step definitions in the REPL.
+* Added documentation about Gherkin tag support.
 
 # 0.0-53 (2019-11-04 / 281b7b5)
 
