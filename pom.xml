@@ -1,28 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemalocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>lambdaisland</groupId>
+  <groupId>com.lambdaisland</groupId>
   <artifactId>kaocha-cucumber</artifactId>
-  <version>0.0-53</version>
-  <name>kaocha</name>
-  <description>Cucumber integration for Kaocha</description>
+  <version>0.1.84</version>
+  <name>kaocha-cucumber</name>
+  <description>Cucumber support for Kaocha</description>
   <url>https://github.com/lambdaisland/kaocha-cucumber</url>
   <inceptionYear>2018</inceptionYear>
   <organization>
     <name>Lambda Island</name>
     <url>https://lambdaisland.com</url>
   </organization>
+  <properties>
+    <project class="build sourceEncoding">UTF-8</project>
+  </properties>
   <licenses>
     <license>
-      <name>Eclipse Public License 1.0</name>
-      <url>https://www.eclipse.org/legal/epl-v10.html</url>
+      <name>MPL-2.0</name>
+      <url>https://www.mozilla.org/media/MPL/2.0/index.txt</url>
     </license>
   </licenses>
   <scm>
     <url>https://github.com/lambdaisland/kaocha-cucumber</url>
     <connection>scm:git:git://github.com/lambdaisland/kaocha-cucumber.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/kaocha-cucumber.git</developerConnection>
-    <tag>fd70b64a18b867c12dc5431a52ef30e2349b1f8a</tag>
+    <tag>901bcd4c203ff625f60edd9e1fc3c755ca4f54fa</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -47,19 +50,48 @@
       <resource>
         <directory>src</directory>
       </resource>
+      <resource>
+        <directory>resources</directory>
+      </resource>
+      <resource>
+        <directory>test/support</directory>
+      </resource>
     </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>2.4</version>
+        <version>3.2.0</version>
         <configuration>
           <archive>
             <manifestEntries>
-              <Git-Revision>fd70b64a18b867c12dc5431a52ef30e2349b1f8a</Git-Revision>
+              <git-revision>901bcd4c203ff625f60edd9e1fc3c755ca4f54fa</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.6</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
