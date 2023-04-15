@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.lambdaisland</groupId>
   <artifactId>kaocha-cucumber</artifactId>
-  <version>0.1.84</version>
+  <version>0.2.90</version>
   <name>kaocha-cucumber</name>
   <description>Cucumber support for Kaocha</description>
   <url>https://github.com/lambdaisland/kaocha-cucumber</url>
@@ -17,15 +17,15 @@
   </properties>
   <licenses>
     <license>
-      <name>MPL-2.0</name>
-      <url>https://www.mozilla.org/media/MPL/2.0/index.txt</url>
+      <name>Eclipse Public License 1.0</name>
+      <url>https://www.eclipse.org/legal/epl-v10.html</url>
     </license>
   </licenses>
   <scm>
     <url>https://github.com/lambdaisland/kaocha-cucumber</url>
     <connection>scm:git:git://github.com/lambdaisland/kaocha-cucumber.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/kaocha-cucumber.git</developerConnection>
-    <tag>901bcd4c203ff625f60edd9e1fc3c755ca4f54fa</tag>
+    <tag>9685d2a04079c21375df07334b33834643506029</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>lambdaisland</groupId>
       <artifactId>kaocha</artifactId>
-      <version>0.0-554</version>
+      <version>1.82.1306</version>
     </dependency>
     <dependency>
       <groupId>io.cucumber</groupId>
@@ -74,7 +74,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>901bcd4c203ff625f60edd9e1fc3c755ca4f54fa</git-revision>
+              <git-revision>9685d2a04079c21375df07334b33834643506029</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
