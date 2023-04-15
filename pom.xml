@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemalocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.lambdaisland</groupId>
+  <groupId>lambdaisland</groupId>
   <artifactId>kaocha-cucumber</artifactId>
-  <version>0.2.90</version>
+  <version>0.10.94</version>
   <name>kaocha-cucumber</name>
   <description>Cucumber support for Kaocha</description>
   <url>https://github.com/lambdaisland/kaocha-cucumber</url>
@@ -25,7 +25,7 @@
     <url>https://github.com/lambdaisland/kaocha-cucumber</url>
     <connection>scm:git:git://github.com/lambdaisland/kaocha-cucumber.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/lambdaisland/kaocha-cucumber.git</developerConnection>
-    <tag>9685d2a04079c21375df07334b33834643506029</tag>
+    <tag>dfee4df630ed30112634abb10c552789a994bc7a</tag>
   </scm>
   <dependencies>
     <dependency>
@@ -74,7 +74,7 @@
         <configuration>
           <archive>
             <manifestEntries>
-              <git-revision>9685d2a04079c21375df07334b33834643506029</git-revision>
+              <git-revision>dfee4df630ed30112634abb10c552789a994bc7a</git-revision>
             </manifestEntries>
           </archive>
         </configuration>
