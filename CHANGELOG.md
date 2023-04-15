@@ -1,4 +1,4 @@
-# Unreleased
+# 0.1.84 (2023-04-14 / e6dfb3d)
 
 ## Added
 * Added documentation for working with step definitions in the REPL.
