@@ -6,8 +6,7 @@
  {:license        :epl
   :inception-year 2018
   :description    "Cucumber support for Kaocha"
-  :old-group-id   "lambdaisland"
-  :group-id       "com.lambdaisland"})
+  :group-id       "lambdaisland"})
 
 
 ;; Local Variables:
