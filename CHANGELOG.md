@@ -1,4 +1,4 @@
-# Unreleased
+# 0.2.90 (2023-04-14 / 5f3a70f)
 
 ## Changed
 * Updated Kaocha dependency.
