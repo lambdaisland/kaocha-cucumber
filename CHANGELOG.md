@@ -2,28 +2,26 @@
 
 ## Added
 
-## Fixed
-
-## Changed
+- Release again to both `lambdaisland` and `com.lambdaisland`
 
 # 0.10.94 (2023-04-14 / 7048235)
 
-## Added
-
-## Fixed
-
 ## Changed
+
+- Bump version prefix to reflect total number of releases.
 
 # 0.2.90 (2023-04-14 / 5f3a70f)
 
 ## Changed
-* Updated Kaocha dependency.
+
+- Updated Kaocha dependency.
 
 # 0.1.84 (2023-04-14 / e6dfb3d)
 
 ## Added
-* Added documentation for working with step definitions in the REPL.
-* Added documentation about Gherkin tag support.
+
+- Added documentation for working with step definitions in the REPL.
+- Added documentation about Gherkin tag support.
 
 # 0.0-53 (2019-11-04 / 281b7b5)
 
@@ -36,8 +34,6 @@
 - Updated Clojure and Kaocha to latest versions
 
 # 0.0-46 (2019-02-28 / a6dccb4)
-
-## Added
 
 ## Fixed
 
