@@ -1,3 +1,11 @@
+# Unreleased
+
+## Added
+
+## Fixed
+
+## Changed
+
 # 0.11.100 (2023-05-08 / 5c7009a)
 
 ## Added
